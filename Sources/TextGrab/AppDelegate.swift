@@ -7,6 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var statusMenu: StatusMenu?
   private var coordinator: CaptureCoordinator?
   private let settings = SettingsWindowController()
+  private let feedback = FeedbackHUD()
+  private lazy var smartPaste = SmartPasteController(feedback: feedback)
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     coordinator = CaptureCoordinator(
@@ -14,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       capture: ScreencaptureService(),
       recognizer: VisionTextRecognizer(),
       clipboard: PasteboardWriter(),
-      feedback: FeedbackHUD()
+      feedback: feedback
     )
     statusMenu = StatusMenu(
       onCapture: { [weak self] in self?.capture() },
@@ -24,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     KeyboardShortcuts.onKeyUp(for: .captureText) { [weak self] in
       Task { @MainActor in self?.capture() }
     }
+    smartPaste.applySetting()
   }
 
   private func capture() {

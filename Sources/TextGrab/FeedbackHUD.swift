@@ -13,7 +13,24 @@ final class FeedbackHUD: Feedback {
     case .noText: toast("No text found")
     case .captureFailed: toast("Couldn't capture screen")
     case .recognitionFailed: toast("Couldn't read text")
-    case .permissionNeeded: showPermissionAlert()
+    case .permissionNeeded:
+      showPermissionAlert(
+        message: "scoop needs Screen Recording permission",
+        details: """
+          scoop reads text from the area you select. Turn on scoop in \
+          System Settings → Privacy & Security → Screen Recording, then quit and reopen scoop.
+          """,
+        settingsPane: "Privacy_ScreenCapture")
+    case .accessibilityNeeded:
+      showPermissionAlert(
+        message: "scoop needs Accessibility permission to paste",
+        details: """
+          Smart Paste pastes for you by pressing ⌘V. Turn on scoop in \
+          System Settings → Privacy & Security → Accessibility, then press the shortcut again. \
+          If it still doesn't paste, quit and reopen scoop.
+          """,
+        settingsPane: "Privacy_Accessibility")
+    case .nothingToPaste: NSSound.beep()
     }
   }
 
@@ -73,19 +90,16 @@ final class FeedbackHUD: Feedback {
     return frame
   }
 
-  private func showPermissionAlert() {
+  private func showPermissionAlert(message: String, details: String, settingsPane: String) {
     NSApp.activate()
     let alert = NSAlert()
-    alert.messageText = "scoop needs Screen Recording permission"
-    alert.informativeText = """
-      scoop reads text from the area you select. Turn on scoop in \
-      System Settings → Privacy & Security → Screen Recording, then quit and reopen scoop.
-      """
+    alert.messageText = message
+    alert.informativeText = details
     alert.addButton(withTitle: "Open System Settings")
     alert.addButton(withTitle: "Cancel")
     if alert.runModal() == .alertFirstButtonReturn,
       let url = URL(
-        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+        string: "x-apple.systempreferences:com.apple.preference.security?\(settingsPane)")
     {
       NSWorkspace.shared.open(url)
     }
