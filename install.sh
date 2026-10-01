@@ -12,6 +12,7 @@ BUNDLE_ID="com.bryantworks.textgrab"
 RELEASE_URL="${TEXTGRAB_RELEASE_URL:-https://github.com/bryantworks/text-grab/releases/latest/download}"
 INSTALL_DIR_OVERRIDE="${TEXTGRAB_INSTALL_DIR:-}"
 TEST_MODE="${TEXTGRAB_TEST_MODE:-0}"
+PROCESS_NAME="${TEXTGRAB_PROCESS_NAME:-TextGrab}"
 TMP_DIR=""
 
 say() { printf '==> %s\n' "$*"; }
@@ -43,15 +44,18 @@ choose_install_dir() {
 }
 
 quit_running_app() {
-  [[ "$TEST_MODE" == "1" ]] && return 0
-  if pgrep -xq TextGrab; then
+  # Tests use a dummy process name; otherwise test mode never touches a running app.
+  if [[ "$TEST_MODE" == "1" && -z "${TEXTGRAB_PROCESS_NAME:-}" ]]; then return 0; fi
+  if pgrep -xq "$PROCESS_NAME"; then
     say "Quitting the running Text Grab…"
-    osascript -e "quit app \"$APP_NAME\"" >/dev/null 2>&1 || true
+    # A plain signal, not an AppleScript "quit app": that can trigger an Automation
+    # permission prompt ("Terminal wants to control Text Grab") and look like a hang.
+    pkill -x "$PROCESS_NAME" || true
     for _ in 1 2 3 4 5 6 7 8 9 10; do
-      pgrep -xq TextGrab || return 0
-      sleep 0.5
+      pgrep -xq "$PROCESS_NAME" || return 0
+      sleep 0.3
     done
-    pkill -x TextGrab || true
+    pkill -9 -x "$PROCESS_NAME" || true
   fi
 }
 

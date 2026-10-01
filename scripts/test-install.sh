@@ -56,4 +56,8 @@ run_installer --uninstall >/dev/null || fail "uninstall when not installed shoul
 # 5. Unknown options are rejected
 if run_installer --bogus >/dev/null 2>&1; then fail "unknown option should fail"; fi
 
+# 6. The installer quits a running app with a signal, never AppleScript: an AppleScript
+#    "quit app" can show an Automation permission prompt and make the update look hung.
+if grep -q osascript install.sh; then fail "install.sh must not use osascript"; fi
+
 echo "install.sh: all checks passed"

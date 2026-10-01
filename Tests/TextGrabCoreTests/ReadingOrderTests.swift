@@ -35,6 +35,15 @@ private func line(
     #expect(ReadingOrder.text(lines) == "a b")
   }
 
+  @Test func twoColumnsAreReadRowByRowAcrossBothColumns() {
+    // Spec §4.2 groups by row, so side-by-side columns interleave line by line.
+    let lines = [
+      line("right 2", x: 0.6, y: 0.2), line("left 1", x: 0.1, y: 0.1),
+      line("left 2", x: 0.1, y: 0.2), line("right 1", x: 0.6, y: 0.1),
+    ]
+    #expect(ReadingOrder.text(lines) == "left 1 right 1\nleft 2 right 2")
+  }
+
   @Test func itemsMoreThanHalfALineApartAreSeparateRows() {
     // Vertical centers differ by 0.04, more than half the 0.05 line height.
     let lines = [line("lower", x: 0.1, y: 0.14), line("upper", x: 0.5, y: 0.10)]
