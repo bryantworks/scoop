@@ -8,6 +8,7 @@ on:
 jobs:
   test:
     runs-on: macos-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Toolchain
@@ -16,33 +17,8 @@ jobs:
         run: swift format lint --strict --recursive Package.swift Sources Tests
       - name: Build
         run: swift build
-      # TEMP DIAGNOSTIC: locate the suite that hangs on GitHub runners.
-      - name: Build tests
-        run: swift build --build-tests
-      - name: Test AppInfoTests
-        timeout-minutes: 4
-        continue-on-error: true
-        run: swift test --skip-build --filter AppInfoTests
-      - name: Test ReadingOrderTests
-        timeout-minutes: 4
-        continue-on-error: true
-        run: swift test --skip-build --filter ReadingOrderTests
-      - name: Test ScreencaptureServiceTests
-        timeout-minutes: 4
-        continue-on-error: true
-        run: swift test --skip-build --filter ScreencaptureServiceTests
-      - name: Test CaptureCoordinatorTests
-        timeout-minutes: 4
-        continue-on-error: true
-        run: swift test --skip-build --filter CaptureCoordinatorTests
-      - name: Test PasteboardWriterTests
-        timeout-minutes: 4
-        continue-on-error: true
-        run: swift test --skip-build --filter PasteboardWriterTests
-      - name: Test VisionTextRecognizerTests
-        timeout-minutes: 4
-        continue-on-error: true
-        run: swift test --skip-build --filter VisionTextRecognizerTests
+      - name: Test
+        run: swift test
       - name: Shellcheck
         run: |
           brew install shellcheck
@@ -54,6 +30,7 @@ jobs:
     # Secrets aren't available to PRs from forks; skip there.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: macos-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Universal signed build

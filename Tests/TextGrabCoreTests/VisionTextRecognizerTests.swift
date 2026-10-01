@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import Testing
 
 @testable import TextGrabCore
@@ -10,7 +11,14 @@ private func normalized(_ text: String) -> String {
     .joined(separator: "\n")
 }
 
-@Suite struct VisionTextRecognizerTests {
+// GitHub's macOS runners are virtual machines without the Neural Engine; Vision text
+// recognition stalls there (observed: no test finishes within 4 minutes). These tests run
+// on real Macs — locally on every `swift test`, and before each release (docs/testing.md).
+@Suite(
+  .disabled(
+    if: ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == "true",
+    "Vision stalls on GitHub's virtualized runners; run on a real Mac"))
+struct VisionTextRecognizerTests {
   let recognizer = VisionTextRecognizer()
 
   private func read(_ image: CGImage) async throws -> String {

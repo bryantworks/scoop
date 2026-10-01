@@ -2,6 +2,8 @@
 
 Run before each release, on a real Mac, using the build being released.
 
+- [ ] **Automated tests on a real Mac:** `swift test` passes locally. (CI skips the Vision text-recognition tests because GitHub's virtual Macs can't run them.)
+
 - [ ] **Fresh install:** on a Mac (or user account) that has never had Text Grab, the README install command works and the menu bar icon appears.
 - [ ] **Permission flow:** the first ⌘⇧2 shows the permission explanation; after granting it and reopening the app, capture works.
 - [ ] **Basic capture:** ⌘⇧2 → drag over text → paste matches, and "Copied ✓" appears.
