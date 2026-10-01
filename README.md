@@ -12,7 +12,7 @@ Requires macOS 14 (Sonoma) or newer. Works on Apple Silicon and Intel Macs.
 2. Paste this line and press Return:
 
    ```
-   curl -fsSL https://raw.githubusercontent.com/bryantworks/text-grab/main/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/mikebryantworks/text-grab/main/install.sh | bash
    ```
 
 3. **First time only:** press **⌘⇧2**. macOS asks for Screen Recording permission. Open System Settings → Privacy & Security → **Screen Recording**, turn on **Text Grab**, then click the Text Grab icon in the menu bar → **Quit Text Grab** and reopen it from your Applications folder.
@@ -39,7 +39,7 @@ Run the same install command again. Your settings and permission are kept.
 ## Uninstall
 
 ```
-curl -fsSL https://raw.githubusercontent.com/bryantworks/text-grab/main/install.sh | bash -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/mikebryantworks/text-grab/main/install.sh | bash -s -- --uninstall
 ```
 
 Then you can remove Text Grab from System Settings → Privacy & Security → Screen Recording.

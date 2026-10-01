@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Text Grab installer — https://github.com/bryantworks/text-grab
+# Text Grab installer — https://github.com/mikebryantworks/text-grab
 #
 #   Install or update:
-#     curl -fsSL https://raw.githubusercontent.com/bryantworks/text-grab/main/install.sh | bash
+#     curl -fsSL https://raw.githubusercontent.com/mikebryantworks/text-grab/main/install.sh | bash
 #   Uninstall:
-#     curl -fsSL https://raw.githubusercontent.com/bryantworks/text-grab/main/install.sh | bash -s -- --uninstall
+#     curl -fsSL https://raw.githubusercontent.com/mikebryantworks/text-grab/main/install.sh | bash -s -- --uninstall
 set -euo pipefail
 
 APP_NAME="Text Grab"
 BUNDLE_ID="com.bryantworks.textgrab"
-RELEASE_URL="${TEXTGRAB_RELEASE_URL:-https://github.com/bryantworks/text-grab/releases/latest/download}"
+RELEASE_URL="${TEXTGRAB_RELEASE_URL:-https://github.com/mikebryantworks/text-grab/releases/latest/download}"
 INSTALL_DIR_OVERRIDE="${TEXTGRAB_INSTALL_DIR:-}"
 TEST_MODE="${TEXTGRAB_TEST_MODE:-0}"
 PROCESS_NAME="${TEXTGRAB_PROCESS_NAME:-TextGrab}"
