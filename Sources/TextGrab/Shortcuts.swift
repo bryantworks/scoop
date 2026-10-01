@@ -4,6 +4,10 @@ extension KeyboardShortcuts.Name {
   /// Default ⌘⇧2 (TextSniper's default; doesn't clash with the ⌘⇧3/4/5 screenshot shortcuts).
   static let captureText = Self("captureText", default: .init(.two, modifiers: [.command, .shift]))
 
+  /// Smart Paste: open the Clipboard History Switcher. Default ⌃⇧1.
+  static let smartPasteSwitcher = Self(
+    "smartPasteSwitcher", default: .init(.one, modifiers: [.control, .shift]))
+
   /// Smart Paste: paste "past clipboard N". Defaults ⌃⇧2…⌃⇧6 for past clipboards 1…5.
   static let smartPaste1 = Self("smartPaste1", default: .init(.two, modifiers: [.control, .shift]))
   static let smartPaste2 = Self(
