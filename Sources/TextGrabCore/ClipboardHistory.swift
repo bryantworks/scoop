@@ -58,6 +58,8 @@ public struct ClipboardItem: Equatable, Identifiable, Sendable {
 /// "past clipboard n". Kept in memory only.
 public struct ClipboardHistory: Sendable {
   public static let defaultCapacity = 10
+  /// The history sizes offered in Settings.
+  public static let allowedCapacities = 5...50
   /// Larger copies (in practice, huge images) are skipped to keep memory use reasonable.
   public static let defaultMaxItemBytes = 25 * 1024 * 1024
   /// Marker types password managers put on secrets (see nspasteboard.org).

@@ -6,9 +6,9 @@ import TextGrabCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private var statusMenu: StatusMenu?
   private var coordinator: CaptureCoordinator?
-  private let settings = SettingsWindowController()
   private let feedback = FeedbackHUD()
   private lazy var smartPaste = SmartPasteController(feedback: feedback)
+  private lazy var settings = SettingsWindowController(smartPaste: smartPaste)
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     coordinator = CaptureCoordinator(
@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     statusMenu = StatusMenu(
       onCapture: { [weak self] in self?.capture() },
+      onClipboardHistory: { [weak self] in self?.smartPaste.toggleSwitcher() },
       onSettings: { [weak self] in self?.settings.show() }
     )
     // Key *up*, so the hotkey's modifier keys are released before the crosshair appears.

@@ -305,4 +305,21 @@ private struct Harness {
     granted.coordinator.requestPermissionIfNeeded()
     #expect(granted.permission.requestCount == 0)
   }
+
+  @Test func changingTheHistorySizeKeepsTheNewestItems() {
+    let harness = Harness(copies: ["a", "b", "c", "d", "e", "f", "g"])
+    harness.coordinator.setHistoryCapacity(5)
+    #expect(harness.history == ["g", "f", "e", "d", "c"])
+    harness.pasteboard.copy("h")
+    harness.coordinator.tick()
+    #expect(harness.history == ["h", "g", "f", "e", "d"])
+  }
+
+  @Test func theHistorySizeStaysWithinTheAllowedRange() {
+    let harness = Harness()
+    harness.coordinator.setHistoryCapacity(1)
+    #expect(harness.coordinator.history.capacity == ClipboardHistory.allowedCapacities.lowerBound)
+    harness.coordinator.setHistoryCapacity(500)
+    #expect(harness.coordinator.history.capacity == ClipboardHistory.allowedCapacities.upperBound)
+  }
 }

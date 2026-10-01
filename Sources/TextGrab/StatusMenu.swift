@@ -2,13 +2,20 @@ import AppKit
 import KeyboardShortcuts
 
 @MainActor
-final class StatusMenu: NSObject {
+final class StatusMenu: NSObject, NSMenuDelegate {
   private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
   private let onCapture: () -> Void
+  private let onClipboardHistory: () -> Void
   private let onSettings: () -> Void
+  private let clipboardHistory = NSMenuItem(
+    title: "Clipboard History…", action: #selector(clipboardHistoryClicked), keyEquivalent: "")
 
-  init(onCapture: @escaping () -> Void, onSettings: @escaping () -> Void) {
+  init(
+    onCapture: @escaping () -> Void, onClipboardHistory: @escaping () -> Void,
+    onSettings: @escaping () -> Void
+  ) {
     self.onCapture = onCapture
+    self.onClipboardHistory = onClipboardHistory
     self.onSettings = onSettings
     super.init()
 
@@ -21,6 +28,9 @@ final class StatusMenu: NSObject {
     capture.target = self
     capture.setShortcut(for: .captureText)  // shows, and stays in sync with, the chosen hotkey
     menu.addItem(capture)
+    clipboardHistory.target = self
+    clipboardHistory.setShortcut(for: .smartPasteSwitcher)
+    menu.addItem(clipboardHistory)
     menu.addItem(.separator())
 
     let settings = NSMenuItem(
@@ -38,10 +48,17 @@ final class StatusMenu: NSObject {
       NSMenuItem(
         title: "Quit scoop", action: #selector(NSApplication.terminate(_:)),
         keyEquivalent: "q"))
+    menu.delegate = self
     statusItem.menu = menu
   }
 
+  func menuNeedsUpdate(_ menu: NSMenu) {
+    clipboardHistory.isHidden = !SmartPasteController.isEnabled
+  }
+
   @objc private func captureClicked() { onCapture() }
+
+  @objc private func clipboardHistoryClicked() { onClipboardHistory() }
 
   @objc private func settingsClicked() { onSettings() }
 

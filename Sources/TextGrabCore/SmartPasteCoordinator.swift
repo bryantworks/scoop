@@ -64,6 +64,13 @@ public final class SmartPasteCoordinator {
     tick()  // the current clipboard becomes the first item
   }
 
+  /// Changes how many items are kept (within `ClipboardHistory.allowedCapacities`); shrinking
+  /// drops the oldest.
+  public func setHistoryCapacity(_ capacity: Int) {
+    let range = ClipboardHistory.allowedCapacities
+    history.capacity = min(max(capacity, range.lowerBound), range.upperBound)
+  }
+
   /// Asks for Accessibility permission (system prompt) if it isn't granted yet.
   public func requestPermissionIfNeeded() {
     if !permission.isGranted() { permission.request() }

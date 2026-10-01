@@ -8,6 +8,7 @@ import TextGrabCore
 @MainActor
 final class SmartPasteController {
   static let enabledKey = "smartPasteEnabled"
+  static let historySizeKey = "smartPasteHistorySize"
   /// Reading `changeCount` is a cheap integer read; contents are read only when it changes.
   private static let pollInterval: TimeInterval = 0.5
   /// Time for the target app to read the clipboard after ⌘V, before the next paste changes it.
@@ -24,6 +25,9 @@ final class SmartPasteController {
 
   init(feedback: any Feedback) {
     self.feedback = feedback
+    UserDefaults.standard.register(defaults: [
+      Self.historySizeKey: ClipboardHistory.defaultCapacity
+    ])
     switcher.onChoose = { [weak self] position in self?.pasteFromSwitcher(position) }
   }
 
@@ -32,6 +36,22 @@ final class SmartPasteController {
   /// Starts or stops to match the saved setting (off by default).
   func applySetting() {
     if Self.isEnabled { start() } else { stop() }
+  }
+
+  /// Applies a new saved history size to the running history.
+  func applyHistorySize() {
+    coordinator?.setHistoryCapacity(UserDefaults.standard.integer(forKey: Self.historySizeKey))
+  }
+
+  /// Opens the switcher (or closes it if it's open), e.g. from the menu bar.
+  func toggleSwitcher() {
+    guard let coordinator else { return }
+    if switcher.isOpen {
+      switcher.close()
+    } else {
+      coordinator.tick()  // include a copy made since the last poll
+      switcher.open(items: coordinator.history.items)
+    }
   }
 
   private func start() {
@@ -43,6 +63,7 @@ final class SmartPasteController {
       feedback: feedback,
       settle: { try? await Task.sleep(for: Self.settleDelay) }
     )
+    coordinator.setHistoryCapacity(UserDefaults.standard.integer(forKey: Self.historySizeKey))
     coordinator.requestPermissionIfNeeded()
 
     // Carbon delivers hotkey events on the main thread; handling them synchronously keeps each
@@ -88,14 +109,9 @@ final class SmartPasteController {
 
   /// ⌃⇧1 opens the switcher, or closes it if it's already open. Auto-repeat is ignored.
   private func switcherKeyDown() {
-    guard !switcherKeyHeld, let coordinator else { return }
+    guard !switcherKeyHeld else { return }
     switcherKeyHeld = true
-    if switcher.isOpen {
-      switcher.close()
-    } else {
-      coordinator.tick()  // include a copy made since the last poll
-      switcher.open(items: coordinator.history.items)
-    }
+    toggleSwitcher()
   }
 
   private func pasteFromSwitcher(_ position: Int) {
