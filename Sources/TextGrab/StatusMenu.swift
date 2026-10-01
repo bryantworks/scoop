@@ -13,7 +13,7 @@ final class StatusMenu: NSObject {
     super.init()
 
     statusItem.button?.image = NSImage(
-      systemSymbolName: "text.viewfinder", accessibilityDescription: "Text Grab")
+      systemSymbolName: "text.viewfinder", accessibilityDescription: "scoop")
 
     let menu = NSMenu()
     let capture = NSMenuItem(
@@ -29,14 +29,14 @@ final class StatusMenu: NSObject {
     menu.addItem(settings)
 
     let about = NSMenuItem(
-      title: "About Text Grab", action: #selector(aboutClicked), keyEquivalent: "")
+      title: "About scoop", action: #selector(aboutClicked), keyEquivalent: "")
     about.target = self
     menu.addItem(about)
     menu.addItem(.separator())
 
     menu.addItem(
       NSMenuItem(
-        title: "Quit Text Grab", action: #selector(NSApplication.terminate(_:)),
+        title: "Quit scoop", action: #selector(NSApplication.terminate(_:)),
         keyEquivalent: "q"))
     statusItem.menu = menu
   }

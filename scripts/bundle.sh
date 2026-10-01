@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds Text Grab and assembles + signs dist/Text Grab.app.
+# Builds scoop and assembles + signs dist/scoop.app.
 # Usage: scripts/bundle.sh [version]          (default 0.0.0-dev)
 # Env:   SIGN_IDENTITY  codesign identity: "-" (ad-hoc, default) or the SHA-1 from import-cert.sh
 #        SIGN_KEYCHAIN  keychain holding that identity (optional)
@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 
 VERSION="${1:-0.0.0-dev}"
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
-APP="dist/Text Grab.app"
+APP="dist/scoop.app"
 
 build_args=(-c release)
 if [[ "${UNIVERSAL:-0}" == "1" ]]; then

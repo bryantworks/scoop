@@ -1,4 +1,4 @@
-# Releasing Text Grab
+# Releasing scoop
 
 ## One-time setup (already done for this repo)
 
@@ -7,8 +7,8 @@
 3. Add the repo secrets:
 
    ```bash
-   base64 -i ~/TextGrabSigning/TextGrabSigning.p12 | gh secret set SIGNING_CERT_P12_BASE64 --repo mikebryantworks/text-grab
-   gh secret set SIGNING_CERT_PASSWORD --repo mikebryantworks/text-grab < ~/TextGrabSigning/password.txt
+   base64 -i ~/TextGrabSigning/TextGrabSigning.p12 | gh secret set SIGNING_CERT_P12_BASE64 --repo mikebryantworks/scoop
+   gh secret set SIGNING_CERT_PASSWORD --repo mikebryantworks/scoop < ~/TextGrabSigning/password.txt
    ```
 
 ## Cutting a release
