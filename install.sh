@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Text Grab installer — https://github.com/mikebryantworks/text-grab
+# Scoop installer — https://github.com/mikebryantworks/text-grab
 #
 #   Install or update:
 #     curl -fsSL https://raw.githubusercontent.com/mikebryantworks/text-grab/main/install.sh | bash
@@ -7,7 +7,8 @@
 #     curl -fsSL https://raw.githubusercontent.com/mikebryantworks/text-grab/main/install.sh | bash -s -- --uninstall
 set -euo pipefail
 
-APP_NAME="Text Grab"
+APP_NAME="Scoop"
+LEGACY_APP_NAME="Text Grab" # pre-rename installs; same bundle ID, removed on install/uninstall
 BUNDLE_ID="com.bryantworks.textgrab"
 RELEASE_URL="${TEXTGRAB_RELEASE_URL:-https://github.com/mikebryantworks/text-grab/releases/latest/download}"
 INSTALL_DIR_OVERRIDE="${TEXTGRAB_INSTALL_DIR:-}"
@@ -47,9 +48,9 @@ quit_running_app() {
   # Tests use a dummy process name; otherwise test mode never touches a running app.
   if [[ "$TEST_MODE" == "1" && -z "${TEXTGRAB_PROCESS_NAME:-}" ]]; then return 0; fi
   if pgrep -xq "$PROCESS_NAME"; then
-    say "Quitting the running Text Grab…"
+    say "Quitting the running Scoop…"
     # A plain signal, not an AppleScript "quit app": that can trigger an Automation
-    # permission prompt ("Terminal wants to control Text Grab") and look like a hang.
+    # permission prompt ("Terminal wants to control Scoop") and look like a hang.
     pkill -x "$PROCESS_NAME" || true
     for _ in 1 2 3 4 5 6 7 8 9 10; do
       pgrep -xq "$PROCESS_NAME" || return 0
@@ -59,18 +60,28 @@ quit_running_app() {
   fi
 }
 
+remove_legacy_app() {
+  local dir
+  while IFS= read -r dir; do
+    if [[ -d "$dir/$LEGACY_APP_NAME.app" ]]; then
+      rm -rf "${dir:?}/$LEGACY_APP_NAME.app"
+      say "Removed the old $dir/$LEGACY_APP_NAME.app"
+    fi
+  done < <(install_dirs)
+}
+
 check_macos() {
   local version major
   version="$(sw_vers -productVersion)"
   major="${version%%.*}"
-  ((major >= 14)) || die "Text Grab needs macOS 14 (Sonoma) or newer. This Mac has macOS $version."
+  ((major >= 14)) || die "Scoop needs macOS 14 (Sonoma) or newer. This Mac has macOS $version."
 }
 
 do_install() {
   check_macos
   TMP_DIR="$(mktemp -d)"
 
-  say "Downloading Text Grab…"
+  say "Downloading Scoop…"
   curl -fsSL "$RELEASE_URL/TextGrab.zip" -o "$TMP_DIR/TextGrab.zip" ||
     die "Download failed. Check your internet connection and try again."
   curl -fsSL "$RELEASE_URL/TextGrab.zip.sha256" -o "$TMP_DIR/TextGrab.zip.sha256" ||
@@ -86,6 +97,7 @@ do_install() {
   dest="$(choose_install_dir)"
   quit_running_app
   rm -rf "${dest:?}/$APP_NAME.app"
+  remove_legacy_app
   ditto "$TMP_DIR/unpacked/$APP_NAME.app" "$dest/$APP_NAME.app"
   xattr -dr com.apple.quarantine "$dest/$APP_NAME.app" 2>/dev/null || true
   say "Installed $APP_NAME to $dest."
@@ -94,11 +106,11 @@ do_install() {
     open "$dest/$APP_NAME.app"
     cat <<'EOF'
 
-Text Grab is running — look for its icon in the menu bar.
+Scoop is running — look for its icon in the menu bar.
 
 First time only: press ⌘⇧2. macOS will ask for Screen Recording permission.
-Turn on Text Grab in System Settings → Privacy & Security → Screen Recording,
-then quit and reopen Text Grab from the menu bar icon.
+Turn on Scoop in System Settings → Privacy & Security → Screen Recording,
+then quit and reopen Scoop from the menu bar icon.
 
 Then: press ⌘⇧2, drag over any text, and paste. Done!
 EOF
@@ -115,13 +127,14 @@ do_uninstall() {
       removed=1
     fi
   done < <(install_dirs)
+  remove_legacy_app
   if [[ "$TEST_MODE" != "1" ]]; then
     defaults delete "$BUNDLE_ID" >/dev/null 2>&1 || true
   fi
   if ((removed)); then
-    say "Text Grab has been uninstalled."
+    say "Scoop has been uninstalled."
   else
-    say "Text Grab wasn't installed. Nothing to do."
+    say "Scoop wasn't installed. Nothing to do."
   fi
 }
 

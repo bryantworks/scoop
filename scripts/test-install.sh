@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 APPS="$WORK/My Apps" # a space in the path on purpose
-APP="$APPS/Text Grab.app"
+APP="$APPS/Scoop.app"
 
 fail() {
   echo "FAIL: $*" >&2
@@ -15,9 +15,9 @@ fail() {
 
 make_release() { # $1 = marker written inside the fake app
   rm -rf "$WORK/release" "$WORK/build"
-  mkdir -p "$WORK/release" "$WORK/build/Text Grab.app/Contents"
-  echo "$1" >"$WORK/build/Text Grab.app/Contents/marker"
-  (cd "$WORK/build" && ditto -c -k --keepParent "Text Grab.app" "$WORK/release/TextGrab.zip")
+  mkdir -p "$WORK/release" "$WORK/build/Scoop.app/Contents"
+  echo "$1" >"$WORK/build/Scoop.app/Contents/marker"
+  (cd "$WORK/build" && ditto -c -k --keepParent "Scoop.app" "$WORK/release/TextGrab.zip")
   (cd "$WORK/release" && shasum -a 256 TextGrab.zip >TextGrab.zip.sha256)
 }
 
@@ -53,10 +53,18 @@ run_installer --uninstall >/dev/null || fail "uninstall exited non-zero"
 [[ ! -e "$APP" ]] || fail "uninstall left the app behind"
 run_installer --uninstall >/dev/null || fail "uninstall when not installed should succeed"
 
-# 5. Unknown options are rejected
+# 5. Installing over a pre-rename "Text Grab.app" removes it, leaving only Scoop
+mkdir -p "$APPS/Text Grab.app/Contents"
+make_release v4
+run_installer >/dev/null || fail "install over legacy app exited non-zero"
+[[ "$(marker)" == v4 ]] || fail "install over legacy app did not place the app"
+[[ ! -e "$APPS/Text Grab.app" ]] || fail "install left the legacy Text Grab.app behind"
+run_installer --uninstall >/dev/null || fail "uninstall after legacy install exited non-zero"
+
+# 6. Unknown options are rejected
 if run_installer --bogus >/dev/null 2>&1; then fail "unknown option should fail"; fi
 
-# 6. The installer quits a running app with a signal, never AppleScript: an AppleScript
+# 7. The installer quits a running app with a signal, never AppleScript: an AppleScript
 #    "quit app" can show an Automation permission prompt and make the update look hung.
 if grep -q osascript install.sh; then fail "install.sh must not use osascript"; fi
 

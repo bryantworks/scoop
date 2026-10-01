@@ -1,4 +1,4 @@
-# Releasing Text Grab
+# Releasing Scoop
 
 ## One-time setup (already done for this repo)
 

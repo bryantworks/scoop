@@ -9,9 +9,9 @@
   <key>CFBundleIdentifier</key>
   <string>com.bryantworks.textgrab</string>
   <key>CFBundleName</key>
-  <string>Text Grab</string>
+  <string>Scoop</string>
   <key>CFBundleDisplayName</key>
-  <string>Text Grab</string>
+  <string>Scoop</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

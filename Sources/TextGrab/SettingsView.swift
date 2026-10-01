@@ -10,7 +10,7 @@ struct SettingsView: View {
     Form {
       // The Recorder warns when a shortcut is reserved by macOS or used by a menu.
       KeyboardShortcuts.Recorder("Capture text:", name: .captureText)
-      Toggle("Launch Text Grab at login", isOn: $launchAtLogin)
+      Toggle("Launch Scoop at login", isOn: $launchAtLogin)
         .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
       if let loginItemMessage {
         Text(loginItemMessage).font(.caption).foregroundStyle(.secondary)
@@ -31,7 +31,7 @@ struct SettingsView: View {
       try LoginItem.setEnabled(enabled)
       loginItemMessage =
         LoginItem.needsApproval
-        ? "Approve Text Grab in System Settings → General → Login Items." : nil
+        ? "Approve Scoop in System Settings → General → Login Items." : nil
     } catch {
       loginItemMessage = "Couldn't change the login setting: \(error.localizedDescription)"
       launchAtLogin = LoginItem.isEnabled
@@ -46,7 +46,7 @@ final class SettingsWindowController {
   func show() {
     if window == nil {
       let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
-      window.title = "Text Grab Settings"
+      window.title = "Scoop Settings"
       window.styleMask = [.titled, .closable]
       window.isReleasedWhenClosed = false
       window.center()
