@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Scoop installer — https://github.com/mikebryantworks/scoop
+# scoop installer — https://github.com/mikebryantworks/scoop
 #
 #   Install or update:
 #     curl -fsSL https://raw.githubusercontent.com/mikebryantworks/scoop/main/install.sh | bash
@@ -7,7 +7,7 @@
 #     curl -fsSL https://raw.githubusercontent.com/mikebryantworks/scoop/main/install.sh | bash -s -- --uninstall
 set -euo pipefail
 
-APP_NAME="Scoop"
+APP_NAME="scoop"
 LEGACY_APP_NAME="Text Grab" # pre-rename installs; same bundle ID, removed on install/uninstall
 BUNDLE_ID="com.bryantworks.textgrab"
 RELEASE_URL="${TEXTGRAB_RELEASE_URL:-https://github.com/mikebryantworks/scoop/releases/latest/download}"
@@ -48,9 +48,9 @@ quit_running_app() {
   # Tests use a dummy process name; otherwise test mode never touches a running app.
   if [[ "$TEST_MODE" == "1" && -z "${TEXTGRAB_PROCESS_NAME:-}" ]]; then return 0; fi
   if pgrep -xq "$PROCESS_NAME"; then
-    say "Quitting the running Scoop…"
+    say "Quitting the running scoop…"
     # A plain signal, not an AppleScript "quit app": that can trigger an Automation
-    # permission prompt ("Terminal wants to control Scoop") and look like a hang.
+    # permission prompt ("Terminal wants to control scoop") and look like a hang.
     pkill -x "$PROCESS_NAME" || true
     for _ in 1 2 3 4 5 6 7 8 9 10; do
       pgrep -xq "$PROCESS_NAME" || return 0
@@ -74,14 +74,14 @@ check_macos() {
   local version major
   version="$(sw_vers -productVersion)"
   major="${version%%.*}"
-  ((major >= 14)) || die "Scoop needs macOS 14 (Sonoma) or newer. This Mac has macOS $version."
+  ((major >= 14)) || die "scoop needs macOS 14 (Sonoma) or newer. This Mac has macOS $version."
 }
 
 do_install() {
   check_macos
   TMP_DIR="$(mktemp -d)"
 
-  say "Downloading Scoop…"
+  say "Downloading scoop…"
   curl -fsSL "$RELEASE_URL/TextGrab.zip" -o "$TMP_DIR/TextGrab.zip" ||
     die "Download failed. Check your internet connection and try again."
   curl -fsSL "$RELEASE_URL/TextGrab.zip.sha256" -o "$TMP_DIR/TextGrab.zip.sha256" ||
@@ -106,11 +106,11 @@ do_install() {
     open "$dest/$APP_NAME.app"
     cat <<'EOF'
 
-Scoop is running — look for its icon in the menu bar.
+scoop is running — look for its icon in the menu bar.
 
 First time only: press ⌘⇧2. macOS will ask for Screen Recording permission.
-Turn on Scoop in System Settings → Privacy & Security → Screen Recording,
-then quit and reopen Scoop from the menu bar icon.
+Turn on scoop in System Settings → Privacy & Security → Screen Recording,
+then quit and reopen scoop from the menu bar icon.
 
 Then: press ⌘⇧2, drag over any text, and paste. Done!
 EOF
@@ -132,9 +132,9 @@ do_uninstall() {
     defaults delete "$BUNDLE_ID" >/dev/null 2>&1 || true
   fi
   if ((removed)); then
-    say "Scoop has been uninstalled."
+    say "scoop has been uninstalled."
   else
-    say "Scoop wasn't installed. Nothing to do."
+    say "scoop wasn't installed. Nothing to do."
   fi
 }
 

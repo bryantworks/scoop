@@ -76,10 +76,10 @@ final class FeedbackHUD: Feedback {
   private func showPermissionAlert() {
     NSApp.activate()
     let alert = NSAlert()
-    alert.messageText = "Scoop needs Screen Recording permission"
+    alert.messageText = "scoop needs Screen Recording permission"
     alert.informativeText = """
-      Scoop reads text from the area you select. Turn on Scoop in \
-      System Settings → Privacy & Security → Screen Recording, then quit and reopen Scoop.
+      scoop reads text from the area you select. Turn on scoop in \
+      System Settings → Privacy & Security → Screen Recording, then quit and reopen scoop.
       """
     alert.addButton(withTitle: "Open System Settings")
     alert.addButton(withTitle: "Cancel")

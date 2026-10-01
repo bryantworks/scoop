@@ -1,4 +1,4 @@
-# Releasing Scoop
+# Releasing scoop
 
 ## One-time setup (already done for this repo)
 

@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 APPS="$WORK/My Apps" # a space in the path on purpose
-APP="$APPS/Scoop.app"
+APP="$APPS/scoop.app"
 
 fail() {
   echo "FAIL: $*" >&2
@@ -15,9 +15,9 @@ fail() {
 
 make_release() { # $1 = marker written inside the fake app
   rm -rf "$WORK/release" "$WORK/build"
-  mkdir -p "$WORK/release" "$WORK/build/Scoop.app/Contents"
-  echo "$1" >"$WORK/build/Scoop.app/Contents/marker"
-  (cd "$WORK/build" && ditto -c -k --keepParent "Scoop.app" "$WORK/release/TextGrab.zip")
+  mkdir -p "$WORK/release" "$WORK/build/scoop.app/Contents"
+  echo "$1" >"$WORK/build/scoop.app/Contents/marker"
+  (cd "$WORK/build" && ditto -c -k --keepParent "scoop.app" "$WORK/release/TextGrab.zip")
   (cd "$WORK/release" && shasum -a 256 TextGrab.zip >TextGrab.zip.sha256)
 }
 
@@ -53,7 +53,7 @@ run_installer --uninstall >/dev/null || fail "uninstall exited non-zero"
 [[ ! -e "$APP" ]] || fail "uninstall left the app behind"
 run_installer --uninstall >/dev/null || fail "uninstall when not installed should succeed"
 
-# 5. Installing over a pre-rename "Text Grab.app" removes it, leaving only Scoop
+# 5. Installing over a pre-rename "Text Grab.app" removes it, leaving only scoop
 mkdir -p "$APPS/Text Grab.app/Contents"
 make_release v4
 run_installer >/dev/null || fail "install over legacy app exited non-zero"
