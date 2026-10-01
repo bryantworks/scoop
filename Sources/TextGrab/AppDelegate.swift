@@ -1,41 +1,33 @@
 import AppKit
-import CoreGraphics
+import KeyboardShortcuts
+import TextGrabCore
 
-/// SPIKE (Task 2, throwaway): a menu bar item that runs screencapture, used to check that
-/// Screen Recording permission is attributed to Text Grab (spec risk 3) and carries over
-/// across signed builds (spec risk 2). Replaced in Task 7.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-  private var statusItem: NSStatusItem?
+  private var statusMenu: StatusMenu?
+  private var coordinator: CaptureCoordinator?
+  private let settings = SettingsWindowController()
 
   func applicationDidFinishLaunching(_ notification: Notification) {
-    let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-    item.button?.image = NSImage(
-      systemSymbolName: "text.viewfinder", accessibilityDescription: "Text Grab")
-    let menu = NSMenu()
-    let spike = NSMenuItem(
-      title: "Spike: Capture to Desktop", action: #selector(spikeCapture), keyEquivalent: "")
-    spike.target = self
-    menu.addItem(spike)
-    menu.addItem(.separator())
-    menu.addItem(
-      NSMenuItem(
-        title: "Quit Text Grab", action: #selector(NSApplication.terminate(_:)),
-        keyEquivalent: "q"))
-    item.menu = menu
-    statusItem = item
+    coordinator = CaptureCoordinator(
+      permission: SystemScreenPermission(),
+      capture: ScreencaptureService(),
+      recognizer: VisionTextRecognizer(),
+      clipboard: PasteboardWriter(),
+      feedback: FeedbackHUD()
+    )
+    statusMenu = StatusMenu(
+      onCapture: { [weak self] in self?.capture() },
+      onSettings: { [weak self] in self?.settings.show() }
+    )
+    // Key *up*, so the hotkey's modifier keys are released before the crosshair appears.
+    KeyboardShortcuts.onKeyUp(for: .captureText) { [weak self] in
+      Task { @MainActor in self?.capture() }
+    }
   }
 
-  @objc private func spikeCapture() {
-    guard CGPreflightScreenCaptureAccess() else {
-      _ = CGRequestScreenCaptureAccess()
-      return
-    }
-    let output = FileManager.default.homeDirectoryForCurrentUser
-      .appending(path: "Desktop/textgrab-spike.png")
-    let process = Process()
-    process.executableURL = URL(filePath: "/usr/sbin/screencapture")
-    process.arguments = ["-i", "-x", output.path]
-    try? process.run()
+  private func capture() {
+    guard let coordinator else { return }
+    Task { await coordinator.trigger() }
   }
 }
