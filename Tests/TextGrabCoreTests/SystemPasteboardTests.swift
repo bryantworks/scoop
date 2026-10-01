@@ -34,7 +34,7 @@ import Testing
     let pasteboard = makePasteboard()
     defer { pasteboard.releaseGlobally() }
     pasteboard.clearContents()
-    pasteboard.setData(Data([0x89, 0x50]), forType: .png)
+    pasteboard.setData(Data("%PDF".utf8), forType: .pdf)
 
     let snapshot = try #require(access(pasteboard).readSnapshot())
     #expect(snapshot.item.representations.isEmpty)
@@ -79,5 +79,59 @@ import Testing
     #expect(changeCount > before)
     #expect(pasteboard.string(forType: .string) == "bold")
     #expect(pasteboard.data(forType: .rtf) == Data("{\\rtf1 \\b bold}".utf8))
+  }
+
+  @Test func readsAnImageOnlyCopy() throws {
+    let pasteboard = makePasteboard()
+    defer { pasteboard.releaseGlobally() }
+    pasteboard.clearContents()
+    pasteboard.setData(Data([0x89, 0x50, 0x4E, 0x47]), forType: .png)
+
+    let snapshot = try #require(access(pasteboard).readSnapshot())
+    #expect(
+      snapshot.item.representations == [ClipboardItem.pngType: Data([0x89, 0x50, 0x4E, 0x47])])
+    #expect(snapshot.item.imageData == Data([0x89, 0x50, 0x4E, 0x47]))
+  }
+
+  @Test func keepsOnlyThePreferredImageFormat() throws {
+    // Screenshots and browsers often offer the same picture as both PNG and (much larger) TIFF.
+    let pasteboard = makePasteboard()
+    defer { pasteboard.releaseGlobally() }
+    pasteboard.clearContents()
+    pasteboard.setData(Data([1]), forType: .tiff)
+    pasteboard.setData(Data([2]), forType: .png)
+
+    let snapshot = try #require(access(pasteboard).readSnapshot())
+    #expect(Array(snapshot.item.representations.keys) == [ClipboardItem.pngType])
+  }
+
+  @Test func keepsATiffOnlyImage() throws {
+    let pasteboard = makePasteboard()
+    defer { pasteboard.releaseGlobally() }
+    pasteboard.clearContents()
+    pasteboard.setData(Data([1]), forType: .tiff)
+
+    let snapshot = try #require(access(pasteboard).readSnapshot())
+    #expect(snapshot.item.representations == [ClipboardItem.tiffType: Data([1])])
+  }
+
+  @Test func skipsTheImagePreviewOfATextCopy() throws {
+    // Excel, Word and others attach a picture of the copied text.
+    let pasteboard = makePasteboard()
+    defer { pasteboard.releaseGlobally() }
+    pasteboard.clearContents()
+    pasteboard.setString("A1 B1", forType: .string)
+    pasteboard.setData(Data([2]), forType: .png)
+
+    let snapshot = try #require(access(pasteboard).readSnapshot())
+    #expect(Array(snapshot.item.representations.keys) == [ClipboardItem.plainTextType])
+  }
+
+  @Test func writeRestoresAnImage() {
+    let pasteboard = makePasteboard()
+    defer { pasteboard.releaseGlobally() }
+    let item = ClipboardItem(representations: [ClipboardItem.pngType: Data([0x89, 0x50])])
+    _ = access(pasteboard).write(item)
+    #expect(pasteboard.data(forType: .png) == Data([0x89, 0x50]))
   }
 }

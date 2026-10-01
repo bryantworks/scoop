@@ -25,7 +25,9 @@ public enum ClipboardSearch {
 
   /// The item's text on one line, shortened to `maxLength` characters.
   public static func preview(_ item: ClipboardItem, maxLength: Int = 300) -> String {
-    guard let text = item.plainText else { return "Formatted text" }
+    guard let text = item.plainText else {
+      return item.imageData != nil ? "Image" : "Formatted text"
+    }
     let line = collapsingWhitespace(text)
     if line.isEmpty { return "Blank text" }
     return line.count > maxLength ? line.prefix(maxLength) + "…" : line

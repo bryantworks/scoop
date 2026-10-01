@@ -22,4 +22,4 @@ These apply to this repo instead of the global HubSpot/Node conventions.
 - **Format:** `swift format --in-place --recursive Package.swift Sources Tests` before committing; CI runs `swift format lint --strict`.
 - **Tests:** Swift Testing. Every new logic unit in `TextGrabCore` gets tests.
 - **Git:** all changes via PR; `main` is protected and requires CI.
-- **Never:** network calls, telemetry, or keeping screenshots in the app; secrets or signing material in the repo.
+- **Never:** network calls, telemetry, or keeping screenshots in the app; secrets or signing material in the repo. (Exception: Smart Paste's clipboard history may hold copied images, including screenshots the user copied, in memory only. It never writes them to disk and clears them on quit or when Smart Paste is turned off.)

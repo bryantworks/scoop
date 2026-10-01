@@ -1,7 +1,7 @@
 import AppKit
 
-/// `PasteboardAccess` over a real `NSPasteboard`, keeping only the text types Smart Paste
-/// supports.
+/// `PasteboardAccess` over a real `NSPasteboard`, keeping only the text and image types Smart
+/// Paste supports.
 @MainActor
 public struct SystemPasteboard: PasteboardAccess {
   public struct SourceApp: Sendable {
@@ -44,10 +44,19 @@ public struct SystemPasteboard: PasteboardAccess {
       types.contains(ClipboardHistory.concealedType)
       || types.contains(ClipboardHistory.transientType)
     if !isSecret {
-      for type in ClipboardItem.supportedTypes {
+      for type in ClipboardItem.textTypes {
         if let data = pasteboard.data(forType: NSPasteboard.PasteboardType(type)) {
           item.representations[type] = data
         }
+      }
+      // Keep a picture only when it's what was copied, not a preview attached to copied text
+      // (as Excel and Word do), and only in one format: the same screenshot as TIFF can be
+      // several times the size of its PNG.
+      if item.representations[ClipboardItem.plainTextType] == nil,
+        let type = ClipboardItem.imageTypes.first(where: types.contains),
+        let data = pasteboard.data(forType: NSPasteboard.PasteboardType(type))
+      {
+        item.representations[type] = data
       }
     }
     return PasteboardSnapshot(item: item, types: types)

@@ -1,5 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
+import ImageIO
 import SwiftUI
 import TextGrabCore
 
@@ -178,11 +179,18 @@ private struct SwitcherRow: View {
         .resizable()
         .frame(width: 28, height: 28)
       VStack(alignment: .leading, spacing: 2) {
-        Text(ClipboardSearch.preview(result.item))
-          .lineLimit(2)
-          .truncationMode(.tail)
-        if let app = result.item.sourceAppName {
-          Text(app).font(.caption).foregroundStyle(.secondary)
+        if let thumbnail = Thumbnails.thumbnail(for: result.item) {
+          Image(nsImage: thumbnail.image)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(maxWidth: 240, maxHeight: 56, alignment: .leading)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+          caption(["Image \(thumbnail.pixelWidth) × \(thumbnail.pixelHeight)", appName])
+        } else {
+          Text(ClipboardSearch.preview(result.item))
+            .lineLimit(2)
+            .truncationMode(.tail)
+          caption([appName])
         }
       }
       Spacer(minLength: 8)
@@ -195,6 +203,50 @@ private struct SwitcherRow: View {
     .background(
       isSelected ? Color.accentColor.opacity(0.25) : .clear,
       in: RoundedRectangle(cornerRadius: 8))
+  }
+
+  private var appName: String? { result.item.sourceAppName }
+
+  @ViewBuilder private func caption(_ parts: [String?]) -> some View {
+    let text = parts.compactMap { $0 }.joined(separator: " · ")
+    if !text.isEmpty {
+      Text(text).font(.caption).foregroundStyle(.secondary)
+    }
+  }
+}
+
+/// Small previews of image items, made once per item without decoding the full image.
+@MainActor
+private enum Thumbnails {
+  struct Thumbnail {
+    let image: NSImage
+    let pixelWidth: Int
+    let pixelHeight: Int
+  }
+
+  private static var cache: [UUID: Thumbnail] = [:]
+
+  static func thumbnail(for item: ClipboardItem) -> Thumbnail? {
+    if let cached = cache[item.id] { return cached }
+    guard let data = item.imageData,
+      let source = CGImageSourceCreateWithData(data as CFData, nil),
+      let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+      let cgImage = CGImageSourceCreateThumbnailAtIndex(
+        source, 0,
+        [
+          kCGImageSourceCreateThumbnailFromImageAlways: true,
+          kCGImageSourceCreateThumbnailWithTransform: true,
+          kCGImageSourceThumbnailMaxPixelSize: 480,
+        ] as CFDictionary)
+    else { return nil }
+    let thumbnail = Thumbnail(
+      image: NSImage(cgImage: cgImage, size: .zero),
+      pixelWidth: properties[kCGImagePropertyPixelWidth] as? Int ?? cgImage.width,
+      pixelHeight: properties[kCGImagePropertyPixelHeight] as? Int ?? cgImage.height)
+    // The history is small, so dropping everything now and then keeps this from growing.
+    if cache.count > 100 { cache.removeAll() }
+    cache[item.id] = thumbnail
+    return thumbnail
   }
 }
 

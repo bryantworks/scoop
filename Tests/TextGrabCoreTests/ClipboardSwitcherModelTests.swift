@@ -53,6 +53,17 @@ private func items(_ texts: [String]) -> [ClipboardItem] {
     #expect(ClipboardSearch.preview(rtfOnly) == "Formatted text")
   }
 
+  @Test func previewOfAnImageSaysSo() {
+    let image = ClipboardItem(representations: [ClipboardItem.pngType: Data([1])])
+    #expect(ClipboardSearch.preview(image) == "Image")
+  }
+
+  @Test func imagesStayInTheListButNeverMatchAQuery() {
+    let image = ClipboardItem(representations: [ClipboardItem.pngType: Data([1])])
+    #expect(ClipboardSearch.filter([image], query: "image").isEmpty)
+    #expect(ClipboardSearch.filter([image], query: "").count == 1)
+  }
+
   @Test func previewOfWhitespaceOnlyTextSaysSo() {
     #expect(ClipboardSearch.preview(ClipboardItem(plainText: " \n\t")) == "Blank text")
   }

@@ -157,4 +157,39 @@ private func texts(_ history: ClipboardHistory) -> [String?] {
     let item = ClipboardItem(representations: [ClipboardItem.plainTextType: Data("héllo".utf8)])
     #expect(item.plainText == "héllo")
   }
+
+  @Test func imagesAreKeptAndPromotedLikeText() {
+    var history = history(["a"])
+    let screenshot = ClipboardItem(representations: [ClipboardItem.pngType: Data([1, 2, 3])])
+    history.record(screenshot)
+    history.record(item("b"))
+    let pasted = history.promote(position: 1)
+    #expect(pasted?.imageData == Data([1, 2, 3]))
+    #expect(pasted?.plainText == nil)
+    #expect(history.items.count == 3)
+  }
+
+  @Test func itemsOverTheSizeLimitAreSkipped() {
+    var history = ClipboardHistory(capacity: 10, maxItemBytes: 100)
+    let big = ClipboardItem(representations: [ClipboardItem.pngType: Data(count: 101)])
+    let fits = ClipboardItem(representations: [ClipboardItem.pngType: Data(count: 100)])
+    let bigRecorded = history.record(big)
+    let fitsRecorded = history.record(fits)
+    #expect(!bigRecorded)
+    #expect(fitsRecorded)
+    #expect(history.items.count == 1)
+  }
+
+  @Test func theDefaultSizeLimitIsTwentyFiveMegabytes() {
+    #expect(ClipboardHistory.defaultMaxItemBytes == 25 * 1024 * 1024)
+  }
+
+  @Test func theSameImageCopiedTwiceIsOneEntry() {
+    var history = ClipboardHistory()
+    history.record(ClipboardItem(representations: [ClipboardItem.pngType: Data([9])]))
+    history.record(item("text"))
+    history.record(ClipboardItem(representations: [ClipboardItem.pngType: Data([9])]))
+    #expect(history.items.count == 2)
+    #expect(history.item(at: 0)?.imageData == Data([9]))
+  }
 }

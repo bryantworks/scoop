@@ -1,13 +1,20 @@
 import Foundation
 
-/// One copied clipboard entry: its text representations plus where it came from.
-public struct ClipboardItem: Equatable, Sendable {
+/// One copied clipboard entry: its text or image representations plus where it came from.
+public struct ClipboardItem: Equatable, Identifiable, Sendable {
   public static let plainTextType = "public.utf8-plain-text"
   public static let rtfType = "public.rtf"
   public static let htmlType = "public.html"
+  public static let pngType = "public.png"
+  public static let jpegType = "public.jpeg"
+  public static let tiffType = "public.tiff"
   /// The text types Smart Paste keeps (and restores) for each item.
-  public static let supportedTypes = [plainTextType, rtfType, htmlType]
+  public static let textTypes = [plainTextType, rtfType, htmlType]
+  /// Image types in order of preference; an item keeps at most one of them.
+  public static let imageTypes = [pngType, jpegType, tiffType]
 
+  /// Identifies this copy (for example, to cache its thumbnail). Not part of its content.
+  public let id = UUID()
   /// Pasteboard type identifier → bytes.
   public var representations: [String: Data]
   public var sourceBundleID: String?
@@ -36,12 +43,23 @@ public struct ClipboardItem: Equatable, Sendable {
   public var plainText: String? {
     representations[Self.plainTextType].flatMap { String(data: $0, encoding: .utf8) }
   }
+
+  public var imageData: Data? {
+    Self.imageTypes.lazy.compactMap { representations[$0] }.first
+  }
+
+  /// Total size of every representation.
+  public var byteCount: Int {
+    representations.values.reduce(0) { $0 + $1.count }
+  }
 }
 
 /// Recent clipboard items, newest first. Index 0 is the current clipboard; index n is
 /// "past clipboard n". Kept in memory only.
 public struct ClipboardHistory: Sendable {
   public static let defaultCapacity = 10
+  /// Larger copies (in practice, huge images) are skipped to keep memory use reasonable.
+  public static let defaultMaxItemBytes = 25 * 1024 * 1024
   /// Marker types password managers put on secrets (see nspasteboard.org).
   public static let concealedType = "org.nspasteboard.ConcealedType"
   public static let transientType = "org.nspasteboard.TransientType"
@@ -55,16 +73,20 @@ public struct ClipboardHistory: Sendable {
     }
   }
 
-  public init(capacity: Int = defaultCapacity) {
+  public let maxItemBytes: Int
+
+  public init(capacity: Int = defaultCapacity, maxItemBytes: Int = defaultMaxItemBytes) {
     self.capacity = max(1, capacity)
+    self.maxItemBytes = maxItemBytes
   }
 
-  /// Adds a new copy as the current clipboard. Skips concealed, transient and empty items.
+  /// Adds a new copy as the current clipboard. Skips concealed, transient, empty and oversized
+  /// items.
   /// A copy whose content is already in the history moves that entry to the top instead.
   /// Returns whether the item was recorded.
   @discardableResult
   public mutating func record(_ item: ClipboardItem, pasteboardTypes: [String] = []) -> Bool {
-    guard !item.representations.isEmpty,
+    guard !item.representations.isEmpty, item.byteCount <= maxItemBytes,
       !pasteboardTypes.contains(Self.concealedType),
       !pasteboardTypes.contains(Self.transientType)
     else { return false }
