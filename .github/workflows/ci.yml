@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: Lint (swift-format)
+        run: swift format lint --strict --recursive Package.swift Sources Tests
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test
+      - name: Shellcheck
+        run: |
+          brew install shellcheck
+          shellcheck scripts/*.sh
+
+  signed-build:
+    # Secrets aren't available to PRs from forks; skip there.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Universal signed build
+        run: scripts/release-build.sh
+        env:
+          VERSION: 0.0.0-ci.${{ github.run_number }}
+          SIGNING_CERT_P12_BASE64: ${{ secrets.SIGNING_CERT_P12_BASE64 }}
+          SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TextGrab-ci-${{ github.run_number }}
+          path: dist/TextGrab.zip*
