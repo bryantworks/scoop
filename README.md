@@ -12,7 +12,7 @@ Requires macOS 14 (Sonoma) or newer. Works on Apple Silicon and Intel Macs.
 2. Paste this line and press Return:
 
    ```
-   curl -fsSL https://raw.githubusercontent.com/mikebryantworks/scoop/main/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/bryantworks/scoop/main/install.sh | bash
    ```
 
 3. **First time only:** press **⌘⇧2**. macOS asks for Screen Recording permission. Open System Settings → Privacy & Security → **Screen Recording**, turn on **scoop**, then click the scoop icon in the menu bar → **Quit scoop** and reopen it from your Applications folder.
@@ -62,7 +62,7 @@ Run the same install command again. Your settings and permissions are kept.
 ## Uninstall
 
 ```
-curl -fsSL https://raw.githubusercontent.com/mikebryantworks/scoop/main/install.sh | bash -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/bryantworks/scoop/main/install.sh | bash -s -- --uninstall
 ```
 
 This also removes scoop's Screen Recording and Accessibility permissions. If scoop is still listed in System Settings → Privacy & Security → Screen Recording or Accessibility, select it and click **−** to remove it.
