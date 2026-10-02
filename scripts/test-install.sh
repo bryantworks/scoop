@@ -68,4 +68,12 @@ if run_installer --bogus >/dev/null 2>&1; then fail "unknown option should fail"
 #    "quit app" can show an Automation permission prompt and make the update look hung.
 if grep -q osascript install.sh; then fail "install.sh must not use osascript"; fi
 
+# 8. Only uninstall resets permissions: an install or update must keep Screen Recording and
+#    Accessibility granted.
+if awk '/^do_install\(\)/,/^}/' install.sh | grep -q tccutil; then
+  fail "install/update must not reset permissions"
+fi
+awk '/^do_uninstall\(\)/,/^}/' install.sh | grep -q "tccutil reset Accessibility" ||
+  fail "uninstall should reset the Accessibility permission"
+
 echo "install.sh: all checks passed"

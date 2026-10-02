@@ -113,6 +113,9 @@ Turn on scoop in System Settings → Privacy & Security → Screen Recording,
 then quit and reopen scoop from the menu bar icon.
 
 Then: press ⌘⇧2, drag over any text, and paste. Done!
+
+Optional: turn on Smart Paste in Settings (menu bar icon → Settings…) to paste
+earlier copies with ⌃⇧1–6. It asks for Accessibility permission when you do.
 EOF
   fi
 }
@@ -130,6 +133,9 @@ do_uninstall() {
   remove_legacy_app
   if [[ "$TEST_MODE" != "1" ]]; then
     defaults delete "$BUNDLE_ID" >/dev/null 2>&1 || true
+    # Best effort: also forget the permissions, so a reinstall starts fresh.
+    tccutil reset ScreenCapture "$BUNDLE_ID" >/dev/null 2>&1 || true
+    tccutil reset Accessibility "$BUNDLE_ID" >/dev/null 2>&1 || true
   fi
   if ((removed)); then
     say "scoop has been uninstalled."
