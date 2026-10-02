@@ -6,8 +6,8 @@ import TextGrabCore
 struct SettingsView: View {
   let smartPaste: SmartPasteController
 
-  @State private var launchAtLogin = LoginItem.isEnabled
-  @State private var loginItemMessage: String?
+  @State private var loginItem = LoginItem.state
+  @State private var loginItemError: String?
   @AppStorage(SmartPasteController.enabledKey) private var smartPasteEnabled = false
   @AppStorage(SmartPasteController.historySizeKey) private var historySize =
     ClipboardHistory.defaultCapacity
@@ -18,10 +18,13 @@ struct SettingsView: View {
       Section {
         // The Recorder warns when a shortcut is reserved by macOS or used by a menu.
         KeyboardShortcuts.Recorder("Capture text:", name: .captureText)
-        Toggle("Launch scoop at login", isOn: $launchAtLogin)
-          .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
-        if let loginItemMessage {
-          Text(loginItemMessage).font(.caption).foregroundStyle(.secondary)
+        // A Binding rather than onChange: refreshing the state after a failure mustn't call
+        // setLaunchAtLogin again (that would undo the change and overwrite the error).
+        Toggle(
+          "Launch scoop at login",
+          isOn: Binding(get: { loginItem.isOn }, set: { setLaunchAtLogin($0) }))
+        if let message = loginItemError ?? loginItem.message {
+          Text(message).font(.caption).foregroundStyle(.secondary)
         }
         Text(
           "Text is recognized on this Mac. Nothing is sent anywhere, and screenshots are deleted right away."
@@ -62,11 +65,11 @@ struct SettingsView: View {
     .formStyle(.grouped)
     .frame(width: 440)
     .fixedSize()
-    // Coming back from System Settings after granting the permission updates the status.
+    // Coming back from System Settings (permission granted, login item changed) updates both.
     .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification))
-    { _ in refreshPermission() }
+    { _ in refreshStatus() }
     .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) {
-      _ in refreshPermission()
+      _ in refreshStatus()
     }
   }
 
@@ -97,16 +100,20 @@ struct SettingsView: View {
     accessibilityGranted = SystemAccessibilityPermission().isGranted()
   }
 
+  private func refreshStatus() {
+    refreshPermission()
+    loginItem = LoginItem.state
+  }
+
   private func setLaunchAtLogin(_ enabled: Bool) {
     do {
       try LoginItem.setEnabled(enabled)
-      loginItemMessage =
-        LoginItem.needsApproval
-        ? "Approve scoop in System Settings → General → Login Items." : nil
+      loginItemError = nil
     } catch {
-      loginItemMessage = "Couldn't change the login setting: \(error.localizedDescription)"
-      launchAtLogin = LoginItem.isEnabled
+      loginItemError = "Couldn't change the login setting: \(error.localizedDescription)"
     }
+    // Show what macOS actually has, whether or not the change worked.
+    loginItem = LoginItem.state
   }
 }
 
