@@ -46,6 +46,8 @@ private struct FakeRecognizer: TextRecognizer {
   enum Outcome: Sendable {
     case text(String)
     case failure
+    /// Stalls until the gate opens (ignoring cancellation), then returns the text.
+    case stall(Gate, then: String)
   }
   struct Failed: Error {}
   var outcome: Outcome
@@ -54,6 +56,9 @@ private struct FakeRecognizer: TextRecognizer {
     switch outcome {
     case .text(let text): return text
     case .failure: throw Failed()
+    case .stall(let gate, let text):
+      await gate.wait()
+      return text
     }
   }
 }
@@ -71,21 +76,51 @@ private final class FakeFeedback: Feedback {
 }
 
 @MainActor
-@Suite struct CaptureCoordinatorTests {
+@Suite(.timeLimit(.minutes(1))) struct CaptureCoordinatorTests {
   private let clipboard = FakeClipboard()
   private let feedback = FakeFeedback()
 
   private func makeCoordinator(
     granted: Bool = true,
     capture: FakeCapture = FakeCapture(.image),
-    recognized: FakeRecognizer.Outcome = .text("Hello")
+    recognized: FakeRecognizer.Outcome = .text("Hello"),
+    recognitionTimeout: Duration = .seconds(30)
   ) -> (CaptureCoordinator, FakePermission) {
     let permission = FakePermission(granted: granted)
     let coordinator = CaptureCoordinator(
       permission: permission, capture: capture,
       recognizer: FakeRecognizer(outcome: recognized),
-      clipboard: clipboard, feedback: feedback)
+      clipboard: clipboard, feedback: feedback,
+      recognitionTimeout: recognitionTimeout)
     return (coordinator, permission)
+  }
+
+  @Test func stalledRecognitionTimesOutAndAllowsTheNextCapture() async {
+    let gate = Gate()
+    let capture = FakeCapture(.image)
+    let (coordinator, _) = makeCoordinator(
+      capture: capture, recognized: .stall(gate, then: "late"),
+      recognitionTimeout: .milliseconds(100))
+
+    await coordinator.trigger()
+    #expect(feedback.events == [.recognitionFailed])
+    #expect(!coordinator.isCapturing)
+
+    await coordinator.trigger()
+    #expect(await capture.calls == 2)
+    await gate.open()
+  }
+
+  /// Text that arrives after the timeout's error toast must not land on the clipboard.
+  @Test func lateRecognitionResultIsDropped() async throws {
+    let gate = Gate()
+    let (coordinator, _) = makeCoordinator(
+      recognized: .stall(gate, then: "late"), recognitionTimeout: .milliseconds(100))
+    await coordinator.trigger()
+    await gate.open()
+    try await Task.sleep(for: .milliseconds(200))
+    #expect(clipboard.written.isEmpty)
+    #expect(feedback.events == [.recognitionFailed])
   }
 
   @Test func copiesRecognizedTextAndConfirms() async {
