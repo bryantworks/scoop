@@ -3,8 +3,19 @@ import Foundation
 import ImageIO
 
 public enum CaptureError: Error, Equatable {
-  case toolFailed(exitCode: Int32)
+  /// `message` is what the tool printed to stderr, for the log.
+  case toolFailed(exitCode: Int32, message: String)
   case unreadableImage
+}
+
+public struct ProcessResult: Equatable, Sendable {
+  public var status: Int32
+  public var standardError: String
+
+  public init(status: Int32, standardError: String = "") {
+    self.status = status
+    self.standardError = standardError
+  }
 }
 
 public protocol CaptureService: Sendable {
@@ -13,19 +24,27 @@ public protocol CaptureService: Sendable {
 }
 
 public protocol ProcessRunner: Sendable {
-  /// Runs the executable to completion and returns its exit status.
-  func run(_ executable: URL, arguments: [String]) async throws -> Int32
+  /// Runs the executable to completion and returns its exit status and stderr.
+  func run(_ executable: URL, arguments: [String]) async throws -> ProcessResult
 }
 
 public struct SystemProcessRunner: ProcessRunner {
   public init() {}
 
-  public func run(_ executable: URL, arguments: [String]) async throws -> Int32 {
+  public func run(_ executable: URL, arguments: [String]) async throws -> ProcessResult {
     try await withCheckedThrowingContinuation { continuation in
       let process = Process()
+      let standardError = Pipe()
       process.executableURL = executable
       process.arguments = arguments
-      process.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
+      process.standardError = standardError
+      process.terminationHandler = { process in
+        let data = standardError.fileHandleForReading.readDataToEndOfFile()
+        continuation.resume(
+          returning: ProcessResult(
+            status: process.terminationStatus,
+            standardError: String(decoding: data, as: UTF8.self)))
+      }
       do {
         try process.run()
       } catch {
@@ -55,12 +74,16 @@ public struct ScreencaptureService: CaptureService {
     defer { try? FileManager.default.removeItem(at: file) }
 
     // -i: interactive selection, -x: no shutter sound.
-    let status = try await runner.run(Self.tool, arguments: ["-i", "-x", file.path])
+    let result = try await runner.run(Self.tool, arguments: ["-i", "-x", file.path])
 
     // Esc or a click without a drag leaves no file (or an empty one): a cancel, not an error.
     let size = (try? FileManager.default.attributesOfItem(atPath: file.path)[.size] as? Int) ?? 0
     guard size > 0 else { return nil }
-    guard status == 0 else { throw CaptureError.toolFailed(exitCode: status) }
+    guard result.status == 0 else {
+      throw CaptureError.toolFailed(
+        exitCode: result.status,
+        message: result.standardError.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
 
     let options = [kCGImageSourceShouldCacheImmediately: true] as CFDictionary
     guard let source = CGImageSourceCreateWithURL(file as CFURL, nil),
