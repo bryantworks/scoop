@@ -3,7 +3,7 @@
 ## One-time setup (already done for this repo)
 
 1. `scripts/make-signing-cert.sh` creates `~/TextGrabSigning/` (the certificate, private key, and password).
-2. **Back up `~/TextGrabSigning/`** somewhere safe (a password manager or an encrypted drive). If it's lost, the next release has a different code identity and every teammate has to grant Screen Recording permission again.
+2. **Back up `~/TextGrabSigning/`** somewhere safe (a password manager or an encrypted drive). If it's lost, the next release has a different code identity and every teammate has to grant Screen Recording (and, for Smart Paste, Accessibility) permission again.
 3. Add the repo secrets:
 
    ```bash
