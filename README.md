@@ -1,6 +1,6 @@
 # scoop
 
-Press a shortcut, drag over anything on your screen, and the text is copied to your clipboard. It works on images, videos, PDFs, screen shares — anything you can see.
+Press a shortcut, drag over anything on your screen, and the text is copied to your clipboard. It works on images, videos, PDFs and screen shares: anything you can see.
 
 Everything happens on your Mac: nothing is sent anywhere, and screenshots are deleted right away.
 

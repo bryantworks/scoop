@@ -142,7 +142,7 @@ All failures are recorded with `os.Logger` (subsystem `com.bryantworks.textgrab`
 
 1. Run `scripts/make-signing-cert.sh`. It creates a self-signed certificate named "Text Grab Signing" that is valid for code signing for 10 years, and exports a `.p12` file plus a password.
 2. Store these as repo secrets: `SIGNING_CERT_P12_BASE64` and `SIGNING_CERT_PASSWORD`.
-3. Keep a backup of the `.p12` file somewhere safe (outside the repo). Losing it means the next release has a new code identity, and every teammate has to grant the Screen Recording permission again.
+3. Keep a backup of the `.p12` file somewhere safe (outside the repo). Losing it causes the next release to have a new code identity, and every teammate has to grant the Screen Recording permission again.
 
 ### 7.2 Release pipeline (`release.yml`)
 
