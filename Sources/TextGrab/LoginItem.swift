@@ -1,11 +1,11 @@
 import ServiceManagement
+import TextGrabCore
 
 /// Launch at login via SMAppService (macOS 13+).
 @MainActor
 enum LoginItem {
-  static var isEnabled: Bool { SMAppService.mainApp.status == .enabled }
-
-  static var needsApproval: Bool { SMAppService.mainApp.status == .requiresApproval }
+  /// Read fresh each time: the user can change it in System Settings → Login Items.
+  static var state: LoginItemState { LoginItemState(status: SMAppService.mainApp.status) }
 
   static func setEnabled(_ enabled: Bool) throws {
     if enabled {
