@@ -12,8 +12,9 @@ struct FakeRunner: ProcessRunner {
 
   var behavior: Behavior
   var exitCode: Int32 = 0
+  var standardError = ""
 
-  func run(_ executable: URL, arguments: [String]) async throws -> Int32 {
+  func run(_ executable: URL, arguments: [String]) async throws -> ProcessResult {
     #expect(executable.path == "/usr/sbin/screencapture")
     #expect(Array(arguments.prefix(2)) == ["-i", "-x"])
     let output = URL(filePath: arguments.last!)
@@ -27,13 +28,15 @@ struct FakeRunner: ProcessRunner {
     case .writeGarbage:
       try Data("not an image".utf8).write(to: output)
     }
-    return exitCode
+    return ProcessResult(status: exitCode, standardError: standardError)
   }
 }
 
 private struct ThrowingRunner: ProcessRunner {
   struct LaunchFailed: Error {}
-  func run(_ executable: URL, arguments: [String]) async throws -> Int32 { throw LaunchFailed() }
+  func run(_ executable: URL, arguments: [String]) async throws -> ProcessResult {
+    throw LaunchFailed()
+  }
 }
 
 private func makeTempDirectory() throws -> URL {
@@ -59,10 +62,34 @@ private func contents(of directory: URL) throws -> [String] {
 
   @Test func returnsNilWhenUserCancels() async throws {
     let dir = try makeTempDirectory()
-    // screencapture exits non-zero and writes nothing when Esc is pressed.
+    // Measured on macOS 27: Esc, or a click without a drag, exits 0 and writes nothing.
+    let service = ScreencaptureService(
+      runner: FakeRunner(behavior: .writeNothing, exitCode: 0), temporaryDirectory: dir)
+    #expect(try await service.captureSelection() == nil)
+  }
+
+  /// A silent non-zero exit is still treated as a cancel, in case an older macOS exits 1 on Esc.
+  @Test func returnsNilWhenToolExitsNonZeroWithoutAnExplanation() async throws {
+    let dir = try makeTempDirectory()
     let service = ScreencaptureService(
       runner: FakeRunner(behavior: .writeNothing, exitCode: 1), temporaryDirectory: dir)
     #expect(try await service.captureSelection() == nil)
+  }
+
+  /// Measured on macOS 27: a failed capture exits 1, writes nothing, and explains on stderr.
+  /// It must show "Couldn't capture screen", not look like a cancel.
+  @Test func throwsWhenToolFailsWithoutWritingAFile() async throws {
+    let dir = try makeTempDirectory()
+    let service = ScreencaptureService(
+      runner: FakeRunner(
+        behavior: .writeNothing, exitCode: 1,
+        standardError: "could not create image from rect\n"),
+      temporaryDirectory: dir)
+    await #expect(
+      throws: CaptureError.toolFailed(exitCode: 1, message: "could not create image from rect")
+    ) {
+      try await service.captureSelection()
+    }
   }
 
   @Test func returnsNilWhenFileIsEmpty() async throws {
@@ -77,7 +104,19 @@ private func contents(of directory: URL) throws -> [String] {
     let dir = try makeTempDirectory()
     let service = ScreencaptureService(
       runner: FakeRunner(behavior: .writePNG, exitCode: 2), temporaryDirectory: dir)
-    await #expect(throws: CaptureError.toolFailed(exitCode: 2)) {
+    await #expect(throws: CaptureError.toolFailed(exitCode: 2, message: "")) {
+      try await service.captureSelection()
+    }
+  }
+
+  /// The tool's own explanation goes into the error, so it reaches the log.
+  @Test func toolFailureCarriesStandardError() async throws {
+    let dir = try makeTempDirectory()
+    let service = ScreencaptureService(
+      runner: FakeRunner(
+        behavior: .writePNG, exitCode: 2, standardError: "could not create image\n"),
+      temporaryDirectory: dir)
+    await #expect(throws: CaptureError.toolFailed(exitCode: 2, message: "could not create image")) {
       try await service.captureSelection()
     }
   }
@@ -106,5 +145,13 @@ private func contents(of directory: URL) throws -> [String] {
       runner: FakeRunner(behavior: behavior), temporaryDirectory: dir)
     _ = try? await service.captureSelection()
     #expect(try contents(of: dir).isEmpty)
+  }
+}
+
+@Suite struct SystemProcessRunnerTests {
+  @Test func returnsExitStatusAndStandardError() async throws {
+    let result = try await SystemProcessRunner().run(
+      URL(filePath: "/bin/sh"), arguments: ["-c", "echo oops >&2; exit 3"])
+    #expect(result == ProcessResult(status: 3, standardError: "oops\n"))
   }
 }

@@ -23,7 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       onClipboardHistory: { [weak self] in self?.smartPaste.toggleSwitcher() },
       onSettings: { [weak self] in self?.settings.show() }
     )
-    // Key *up*, so the hotkey's modifier keys are released before the crosshair appears.
+    // Key *up* fires when the main key lifts; the shortcut's modifiers may still be down. That's
+    // harmless except for ⌃: held into the drag, it makes the drag a Control-click, and the
+    // selection never finishes. (The default ⌘⇧2 is unaffected.)
     KeyboardShortcuts.onKeyUp(for: .captureText) { [weak self] in
       Task { @MainActor in self?.capture() }
     }
