@@ -43,6 +43,14 @@ Smart Paste keeps a history of the last things you copied (text, formatted text 
 
 Pasting an item also puts it back on top of the history, so the others move back one place. That makes this handy trick work: **copy up to six things, then hold Control-Shift and tap 6 six times.** They paste in the order you copied them. (For three things, tap 4 three times, and so on.)
 
+**Change the case as you paste:** these paste what's on your clipboard now as plain text in a different case. Your clipboard is left exactly as it was.
+
+| Shortcut | Pastes the current clipboard as |
+|---|---|
+| **⌃⇧U** | ALL CAPS |
+| **⌃⇧L** | lower case |
+| **⌃⇧T** | Title Case (every word capitalized) |
+
 **Pick from the whole history:** press **⌃⇧1** (or click the menu bar icon → **Clipboard History…**). Type to search, use ↑/↓ to choose, and press Return to paste into the app you're in. Esc closes it.
 
 **Privacy:** the history stays in memory on your Mac. It's never saved to disk, and it's cleared when scoop quits or you turn Smart Paste off. Passwords copied from password managers are skipped. Images larger than 25 MB aren't kept.
@@ -73,9 +81,9 @@ This also removes scoop's Screen Recording and Accessibility permissions. If sco
 |---|---|
 | "No text found" on text I can see | Screen Recording permission is probably off. Check System Settings → Privacy & Security → Screen Recording, then quit and reopen scoop. |
 | The shortcut does nothing | Another app may use the same shortcut. Pick a different one in Settings. Also check that the scoop icon is in the menu bar. |
-| Smart Paste shortcuts (⌃⇧1–6) do nothing | Check Smart Paste is on in Settings. If Settings shows "scoop needs Accessibility permission to paste", click **Open System Settings** and turn on scoop. |
+| Smart Paste shortcuts (⌃⇧1–6, ⌃⇧U/L/T) do nothing | Check Smart Paste is on in Settings. If Settings shows "scoop needs Accessibility permission to paste", click **Open System Settings** and turn on scoop. |
 | Smart Paste says it needs Accessibility, but scoop is already turned on in System Settings | The entry can go stale (for example, after a reinstall). In System Settings → Privacy & Security → Accessibility, select scoop, click **−** to remove it, then turn Smart Paste off and on again in scoop's Settings and allow it when asked. |
-| A Smart Paste shortcut beeps | There's nothing at that position yet. The history starts empty each time scoop opens or Smart Paste is turned on, so copy a few more things first. |
+| A Smart Paste shortcut beeps | There's nothing at that position yet. The history starts empty each time scoop opens or Smart Paste is turned on, so copy a few more things first. ⌃⇧U/L/T also beep when the clipboard holds no text (an image, say) or a password. |
 | Smart Paste pastes the wrong item in one app | Some slower apps (often Electron apps like Slack) read the clipboard late. Press the shortcuts a little more slowly in that app, and tell the maintainer which app it was. |
 | macOS says the app "can't be opened" | You probably downloaded the zip in a browser. Use the Terminal install command instead, or go to System Settings → Privacy & Security and click **Open Anyway**. |
 | Something else | Open **Console.app**, search for `com.bryantworks.textgrab`, and send the messages to the maintainer. |

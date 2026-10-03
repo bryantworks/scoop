@@ -51,6 +51,9 @@ struct SettingsView: View {
           ForEach(KeyboardShortcuts.Name.smartPastePositions, id: \.position) { shortcut in
             shortcutRecorder("Paste past clipboard \(shortcut.position):", name: shortcut.name)
           }
+          shortcutRecorder("Paste as ALL CAPS:", name: .smartPasteUpper)
+          shortcutRecorder("Paste as lower case:", name: .smartPasteLower)
+          shortcutRecorder("Paste as Title Case:", name: .smartPasteTitle)
           Stepper(
             "Remember \(historySize) items", value: $historySize,
             in: ClipboardHistory.allowedCapacities
@@ -117,6 +120,7 @@ struct SettingsView: View {
     if smartPasteEnabled {
       names.append(.smartPasteSwitcher)
       names += KeyboardShortcuts.Name.smartPastePositions.map(\.name)
+      names += KeyboardShortcuts.Name.smartPasteCases.map(\.name)
     }
     shortcutConflicts = conflictingNames(
       names.map { (name: $0, key: KeyboardShortcuts.getShortcut(for: $0)) })

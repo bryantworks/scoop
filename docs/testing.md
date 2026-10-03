@@ -22,6 +22,8 @@ Run before each release, on a real Mac, using the build being released.
 - [ ] **Turning it on:** the Settings toggle asks for Accessibility; after granting, Settings shows the green status line.
 - [ ] **Countdown:** copy six words one at a time, then hold ⌃⇧ and tap 6 six times; they paste in copy order.
 - [ ] **Fast repeats and held keys:** tapping ⌃⇧2 quickly alternates between the last two items; holding ⌃⇧6 down pastes once.
+- [ ] **Case shortcuts:** copy "the quick brown fox" in TextEdit; ⌃⇧U, ⌃⇧L and ⌃⇧T paste "THE QUICK BROWN FOX", "the quick brown fox" and "The Quick Brown Fox"; ⌘V afterward still pastes the original.
+- [ ] **Case shortcuts keep the clipboard:** copy a file in Finder, press ⌃⇧U in TextEdit (the file name pastes in caps), then ⌘V in a Finder folder still pastes the file. With an image or a password manager copy on the clipboard, ⌃⇧U beeps and pastes nothing.
 - [ ] **Skips secrets:** a password copied from a password manager isn't in the history.
 - [ ] **Captures and images:** ⌘⇧2 text and a ⌘⌃⇧4 screenshot both join the history and paste back.
 - [ ] **Switcher:** ⌃⇧1 opens over the current app without taking focus; search, ↑/↓ and Return paste into that app; Esc and clicking away close it. Works over a full-screen app.

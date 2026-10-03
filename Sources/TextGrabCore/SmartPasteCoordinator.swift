@@ -12,6 +12,16 @@ public struct PasteboardSnapshot: Sendable {
   }
 }
 
+/// Everything on the pasteboard, every item and type, so it can be put back exactly.
+public struct PasteboardContents: Equatable, Sendable {
+  /// One entry per pasteboard item: type identifier → bytes.
+  public var items: [[String: Data]]
+
+  public init(items: [[String: Data]]) {
+    self.items = items
+  }
+}
+
 @MainActor
 public protocol PasteboardAccess {
   /// Increases whenever anyone changes the pasteboard.
@@ -19,6 +29,10 @@ public protocol PasteboardAccess {
   func readSnapshot() -> PasteboardSnapshot?
   /// Replaces the pasteboard contents and returns the resulting `changeCount`.
   func write(_ item: ClipboardItem) -> Int
+  /// Copies every item and type on the pasteboard, or nil when it's empty.
+  func saveContents() -> PasteboardContents?
+  /// Puts saved contents back and returns the resulting `changeCount`.
+  func restore(_ contents: PasteboardContents) -> Int
 }
 
 @MainActor
@@ -27,10 +41,12 @@ public protocol KeystrokeSender {
   func sendPaste()
 }
 
-/// Clipboard monitoring + "paste past clipboard N".
+/// Clipboard monitoring + "paste past clipboard N" + "paste in a different case".
 /// Pasting sets the clipboard to the chosen item (moving it to the top of the history) and
-/// simulates ⌘V. Presses are queued and run one at a time, and each position is looked up when
-/// its paste runs, so repeating ⌃⇧6 pastes the last six copies oldest first.
+/// simulates ⌘V. A case paste instead pastes the current clipboard's text converted, then puts
+/// the clipboard back exactly as it was. Presses are queued and run one at a time, and each
+/// position is looked up when its paste runs, so repeating ⌃⇧6 pastes the last six copies oldest
+/// first.
 @MainActor
 public final class SmartPasteCoordinator {
   private let pasteboard: any PasteboardAccess
@@ -43,8 +59,8 @@ public final class SmartPasteCoordinator {
   public private(set) var history: ClipboardHistory
   /// The pasteboard state already accounted for: the last copy recorded, or our own write.
   private var lastChangeCount: Int?
-  private var heldPositions: Set<Int> = []
-  private var queue: [Int] = []
+  private var heldKeys: Set<PasteRequest> = []
+  private var queue: [PasteRequest] = []
   private var drainTask: Task<Void, Never>?
 
   public init(
@@ -89,17 +105,34 @@ public final class SmartPasteCoordinator {
   /// A fixed-position shortcut went down. Auto-repeat (another key-down with no key-up in
   /// between) is ignored.
   public func keyDown(position: Int) {
-    guard heldPositions.insert(position).inserted else { return }
-    paste(position: position)
+    keyDown(.position(position))
   }
 
   public func keyUp(position: Int) {
-    heldPositions.remove(position)
+    heldKeys.remove(.position(position))
+  }
+
+  /// A case shortcut went down. Auto-repeat is ignored, as for the position shortcuts.
+  public func keyDown(converting textCase: TextCase) {
+    keyDown(.converted(textCase))
+  }
+
+  public func keyUp(converting textCase: TextCase) {
+    heldKeys.remove(.converted(textCase))
   }
 
   /// Queues a paste of the item at `position` (0 = the current clipboard).
   public func paste(position: Int) {
-    queue.append(position)
+    enqueue(.position(position))
+  }
+
+  private func keyDown(_ request: PasteRequest) {
+    guard heldKeys.insert(request).inserted else { return }
+    enqueue(request)
+  }
+
+  private func enqueue(_ request: PasteRequest) {
+    queue.append(request)
     guard drainTask == nil else { return }
     drainTask = Task { [weak self] in await self?.drain() }
   }
@@ -111,18 +144,25 @@ public final class SmartPasteCoordinator {
 
   private func drain() async {
     while !queue.isEmpty {
-      await performPaste(position: queue.removeFirst())
+      await perform(queue.removeFirst())
     }
     drainTask = nil
   }
 
-  private func performPaste(position: Int) async {
+  private func perform(_ request: PasteRequest) async {
     guard permission.isGranted() else {
       queue.removeAll()  // one explanation, not one per queued press
       feedback.show(.accessibilityNeeded)
       return
     }
     tick()  // a copy made since the last poll counts
+    switch request {
+    case .position(let position): await performPaste(position: position)
+    case .converted(let textCase): await performPaste(converting: textCase)
+    }
+  }
+
+  private func performPaste(position: Int) async {
     guard let item = history.promote(position: position) else {
       feedback.show(.nothingToPaste)
       return
@@ -131,4 +171,30 @@ public final class SmartPasteCoordinator {
     keystrokes.sendPaste()
     await settle()
   }
+
+  /// Reads the live clipboard rather than the history, so a secret (which the history skips)
+  /// is refused instead of an older item being pasted in its place.
+  private func performPaste(converting textCase: TextCase) async {
+    guard let snapshot = pasteboard.readSnapshot(),
+      !snapshot.types.contains(ClipboardHistory.concealedType),
+      !snapshot.types.contains(ClipboardHistory.transientType),
+      let text = snapshot.item.plainText,
+      let original = pasteboard.saveContents()
+    else {
+      feedback.show(.nothingToPaste)
+      return
+    }
+    let written = pasteboard.write(ClipboardItem(plainText: textCase.apply(to: text)))
+    lastChangeCount = written
+    keystrokes.sendPaste()
+    await settle()
+    // Someone copied something while we waited: that's the clipboard now, so leave it.
+    guard pasteboard.changeCount == written else { return }
+    lastChangeCount = pasteboard.restore(original)
+  }
+}
+
+private enum PasteRequest: Hashable {
+  case position(Int)
+  case converted(TextCase)
 }

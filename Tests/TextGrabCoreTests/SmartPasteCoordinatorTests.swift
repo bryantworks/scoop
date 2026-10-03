@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import TextGrabCore
@@ -13,6 +14,8 @@ private final class FakePasteboard: PasteboardAccess {
   private let recorder: Recorder
   private(set) var changeCount = 0
   private var current: PasteboardSnapshot?
+  /// Data Smart Paste doesn't read (like a copied file's URL) but must survive a restore.
+  private var extras: [String: Data] = [:]
   private(set) var writes: [String?] = []
   /// Like the real pasteboard, reads are attributed to whichever app is frontmost.
   var frontmostApp: String?
@@ -20,12 +23,22 @@ private final class FakePasteboard: PasteboardAccess {
   init(recorder: Recorder) { self.recorder = recorder }
 
   /// Another app copies something.
-  func copy(_ text: String, from app: String? = nil, extraTypes: [String] = []) {
+  func copy(
+    _ text: String, from app: String? = nil, extraTypes: [String] = [],
+    extraData: [String: Data] = [:]
+  ) {
+    copy(
+      ClipboardItem(plainText: text, sourceBundleID: app), extraTypes: extraTypes,
+      extraData: extraData)
+  }
+
+  func copy(_ item: ClipboardItem, extraTypes: [String] = [], extraData: [String: Data] = [:]) {
     changeCount += 1
-    frontmostApp = app
+    frontmostApp = item.sourceBundleID
     current = PasteboardSnapshot(
-      item: ClipboardItem(plainText: text, sourceBundleID: app),
-      types: [ClipboardItem.plainTextType] + extraTypes)
+      item: item,
+      types: Array(item.representations.keys) + extraTypes + Array(extraData.keys))
+    extras = extraData
   }
 
   var currentText: String? { current?.item.plainText }
@@ -39,8 +52,24 @@ private final class FakePasteboard: PasteboardAccess {
   func write(_ item: ClipboardItem) -> Int {
     changeCount += 1
     current = PasteboardSnapshot(item: item, types: Array(item.representations.keys))
+    extras = [:]
     writes.append(item.plainText)
     recorder.log.append("write \(item.plainText ?? "?")")
+    return changeCount
+  }
+
+  func saveContents() -> PasteboardContents? {
+    guard let current else { return nil }
+    return PasteboardContents(items: [current.item.representations.merging(extras) { $1 }])
+  }
+
+  func restore(_ contents: PasteboardContents) -> Int {
+    let all = contents.items.first ?? [:]
+    let kept = all.filter { ClipboardItem.textTypes.contains($0.key) }
+    changeCount += 1
+    current = PasteboardSnapshot(item: ClipboardItem(representations: kept), types: Array(all.keys))
+    extras = all.filter { kept[$0.key] == nil }
+    recorder.log.append("restore \(currentText ?? "?")")
     return changeCount
   }
 }
@@ -119,6 +148,12 @@ private struct Harness {
   func press(_ position: Int) {
     coordinator.keyDown(position: position)
     coordinator.keyUp(position: position)
+  }
+
+  /// A real press of a case shortcut.
+  func press(_ textCase: TextCase) {
+    coordinator.keyDown(converting: textCase)
+    coordinator.keyUp(converting: textCase)
   }
 }
 
@@ -321,5 +356,130 @@ private struct Harness {
     #expect(harness.coordinator.history.capacity == ClipboardHistory.allowedCapacities.lowerBound)
     harness.coordinator.setHistoryCapacity(500)
     #expect(harness.coordinator.history.capacity == ClipboardHistory.allowedCapacities.upperBound)
+  }
+
+  @Test func aCasePastePastesTheConvertedTextThenRestoresTheOriginal() async {
+    let harness = Harness(copies: ["a", "Hello world"])
+    harness.press(.upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(
+      harness.recorder.log == ["write HELLO WORLD", "⌘V", "settle", "restore Hello world"])
+    #expect(harness.keystrokes.pasted == ["HELLO WORLD"])
+  }
+
+  @Test(arguments: [(TextCase.upper, "MIXED CASE"), (.lower, "mixed case"), (.title, "Mixed Case")])
+  func eachCaseConvertsTheCurrentClipboard(textCase: TextCase, expected: String) async {
+    let harness = Harness(copies: ["mIxEd cAsE"])
+    harness.press(textCase)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.keystrokes.pasted == [expected])
+  }
+
+  @Test func theRestoredClipboardKeepsDataSmartPasteDoesNotRead() async throws {
+    let harness = Harness()
+    let rtf = Data("{\\rtf1 Report}".utf8)
+    let fileURL = Data("file:///Users/me/Report.pdf".utf8)
+    harness.pasteboard.copy(
+      ClipboardItem(representations: [
+        ClipboardItem.plainTextType: Data("Report".utf8), ClipboardItem.rtfType: rtf,
+      ]),
+      extraData: ["public.file-url": fileURL])
+    let before = try #require(harness.pasteboard.saveContents())
+
+    harness.press(.upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.keystrokes.pasted == ["REPORT"])
+    #expect(harness.pasteboard.saveContents() == before)
+  }
+
+  @Test func aCasePasteLeavesTheHistoryAlone() async {
+    let harness = Harness(copies: ["a", "b"])
+    harness.press(.title)
+    await harness.coordinator.waitUntilIdle()
+    harness.coordinator.tick()  // our own writes aren't new copies
+    #expect(harness.history == ["b", "a"])
+  }
+
+  @Test func aCopyMadeDuringTheCasePasteIsNotOverwritten() async {
+    var harness: Harness!
+    harness = Harness(
+      copies: ["hello"],
+      settle: { _ in harness.pasteboard.copy("copied meanwhile") })
+    harness.press(.upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.keystrokes.pasted == ["HELLO"])
+    #expect(harness.pasteboard.currentText == "copied meanwhile")
+    harness.coordinator.tick()
+    #expect(harness.history == ["copied meanwhile", "hello"])
+  }
+
+  @Test func aCasePasteUsesACopyMadeJustBeforeThePress() async {
+    let harness = Harness(copies: ["a"])
+    harness.pasteboard.copy("b")  // no tick yet
+    harness.press(.upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.keystrokes.pasted == ["B"])
+  }
+
+  @Test func anImageCannotBeCaseConverted() async {
+    let harness = Harness()
+    harness.pasteboard.copy(ClipboardItem(representations: [ClipboardItem.pngType: Data([1])]))
+    harness.coordinator.tick()
+    harness.press(.upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.pasteboard.writes.isEmpty)
+    #expect(harness.keystrokes.pasted.isEmpty)
+    #expect(harness.feedback.events == [.nothingToPaste])
+  }
+
+  @Test func anEmptyClipboardCannotBeCaseConverted() async {
+    let harness = Harness()
+    harness.press(.lower)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.keystrokes.pasted.isEmpty)
+    #expect(harness.feedback.events == [.nothingToPaste])
+  }
+
+  @Test(arguments: [ClipboardHistory.concealedType, ClipboardHistory.transientType])
+  func aSecretIsNeverCaseConverted(markerType: String) async {
+    let harness = Harness(copies: ["a"])
+    harness.pasteboard.copy("hunter2", extraTypes: [markerType])
+    harness.press(.upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.pasteboard.writes.isEmpty)
+    #expect(harness.keystrokes.pasted.isEmpty)
+    #expect(harness.pasteboard.currentText == "hunter2")
+    #expect(harness.feedback.events == [.nothingToPaste])
+  }
+
+  @Test func casePastesAndPositionPastesRunInOrder() async {
+    let harness = Harness(copies: ["Apple", "Banana"])  // Banana Apple
+    harness.press(1)  // Apple → Apple Banana
+    harness.press(.lower)  // the current clipboard is now Apple
+    harness.press(.upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.keystrokes.pasted == ["Apple", "apple", "APPLE"])
+    #expect(harness.history == ["Apple", "Banana"])
+  }
+
+  @Test func autoRepeatOfACaseShortcutPastesOnce() async {
+    let harness = Harness(copies: ["hi"])
+    harness.coordinator.keyDown(converting: .upper)
+    harness.coordinator.keyDown(converting: .upper)  // auto-repeat
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.keystrokes.pasted == ["HI"])
+
+    harness.coordinator.keyUp(converting: .upper)
+    harness.coordinator.keyDown(converting: .upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.keystrokes.pasted == ["HI", "HI"])
+  }
+
+  @Test func withoutPermissionACasePasteExplainsInstead() async {
+    let harness = Harness(copies: ["hi"], granted: false)
+    harness.press(.upper)
+    await harness.coordinator.waitUntilIdle()
+    #expect(harness.pasteboard.writes.isEmpty)
+    #expect(harness.feedback.events == [.accessibilityNeeded])
   }
 }
