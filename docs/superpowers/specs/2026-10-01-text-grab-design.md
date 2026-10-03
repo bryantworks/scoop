@@ -172,7 +172,7 @@ What it does:
 1. Checks the macOS version (14 or newer) and exits with a clear message otherwise.
 2. Finds the latest release through the public GitHub API, downloads the zip and `.sha256` into a temporary directory, and checks the checksum. It stops if they don't match.
 3. Quits a running Text Grab if there is one (`osascript -e 'quit app "Text Grab"'`).
-4. Replaces `/Applications/Text Grab.app`. If it can't write there, it falls back to `~/Applications`.
+4. Updates an existing install in the folder it's already in. A fresh install goes to `/Applications`, or to `~/Applications` if it can't write there. It copies the new app next to the old one first and swaps them with `mv`, so a failed copy leaves the old app working. If copies exist in both folders, the update keeps one.
 5. Clears the "downloaded from the internet" flag defensively (`xattr -dr com.apple.quarantine`).
 6. Opens the app and prints next steps: grant the Screen Recording permission, then press ⌘⇧2.
 
