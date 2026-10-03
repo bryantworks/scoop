@@ -157,7 +157,7 @@ Triggered by pushing a tag `v*.*.*`. It runs on GitHub's `macos-latest` machines
 
 ### 7.3 CI (`ci.yml`)
 
-Runs on every pull request and every push to `main`: `swift build`, `swift test`, `shellcheck install.sh scripts/*.sh`, and a `swift-format lint` check.
+Runs on every pull request and every push to `main`: `swift build`, `swift test`, `shellcheck install.sh scripts/*.sh`, and a `swift-format lint` check. Pushes to `main` also make a signed build. Pull requests never get the signing certificate.
 
 ### 7.4 Install script (`install.sh`)
 
