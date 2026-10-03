@@ -1,5 +1,6 @@
 import AppKit
 import KeyboardShortcuts
+import TextGrabCore
 
 @MainActor
 final class StatusMenu: NSObject, NSMenuDelegate {
@@ -19,8 +20,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     self.onSettings = onSettings
     super.init()
 
-    statusItem.button?.image = NSImage(
-      systemSymbolName: "text.viewfinder", accessibilityDescription: "scoop")
+    statusItem.button?.image = Self.menuBarIcon()
 
     let menu = NSMenu()
     let capture = NSMenuItem(
@@ -50,6 +50,20 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         keyEquivalent: "q"))
     menu.delegate = self
     statusItem.menu = menu
+  }
+
+  /// The logo as a template image: macOS colors it to suit the menu bar (and its highlight).
+  private static func menuBarIcon() -> NSImage {
+    let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
+      guard let context = NSGraphicsContext.current?.cgContext else { return false }
+      context.addPath(ScoopMark.path(in: rect))
+      context.setFillColor(NSColor.black.cgColor)
+      context.fillPath(using: ScoopMark.fillRule)
+      return true
+    }
+    image.isTemplate = true
+    image.accessibilityDescription = "scoop"
+    return image
   }
 
   func menuNeedsUpdate(_ menu: NSMenu) {

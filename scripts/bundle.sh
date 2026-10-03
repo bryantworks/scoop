@@ -26,6 +26,12 @@ sed "s/__VERSION__/$VERSION/g" Resources/Info.plist >"$APP/Contents/Info.plist"
 # SwiftPM resource bundles (e.g. KeyboardShortcuts' localizations).
 find "$BIN_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP/Contents/Resources/" \;
 
+# App icon, drawn from the logo's shape by the make-app-icon tool (built above).
+ICON_DIR="$(mktemp -d)"
+trap 'rm -rf "$ICON_DIR"' EXIT
+"$BIN_DIR/make-app-icon" "$ICON_DIR/AppIcon.iconset"
+iconutil -c icns -o "$APP/Contents/Resources/AppIcon.icns" "$ICON_DIR/AppIcon.iconset"
+
 sign_args=(--force --sign "$SIGN_IDENTITY" --timestamp=none)
 if [[ -n "${SIGN_KEYCHAIN:-}" ]]; then
   sign_args+=(--keychain "$SIGN_KEYCHAIN")
