@@ -7,6 +7,8 @@
 
 Press a shortcut, drag over anything on your screen, and the text is copied to your clipboard. It works on images, videos, PDFs and screen shares: anything you can see.
 
+**Smart Paste** (optional, off until you turn it on) remembers the last things you copied and pastes any of them with a shortcut. It can also paste your clipboard as ALL CAPS, lower case or Title Case. See [Smart Paste](#smart-paste-optional).
+
 Everything happens on your Mac: nothing is sent anywhere, and screenshots are deleted right away.
 
 ## Install
@@ -36,15 +38,15 @@ Smart Paste keeps a history of the last things you copied (text, formatted text 
 
 **Turn it on:** click the scoop icon in the menu bar → **Settings…** → turn on **Smart Paste**. macOS asks for **Accessibility** permission, which scoop needs to paste for you. Turn on **scoop** in System Settings → Privacy & Security → **Accessibility**.
 
-**Paste an earlier copy:** the item on your clipboard now is the current one. The ones before it are "past clipboard 1" (the one you copied just before), "past clipboard 2", and so on.
+**Paste a recent copy:** what you copied last is your latest copy, and ⌘V pastes it as usual. The shortcuts reach further back, and each one's number tells you how far:
 
 | Shortcut | Pastes |
 |---|---|
-| **⌃⇧2** (Control-Shift-2) | past clipboard 1 |
-| **⌃⇧3** | past clipboard 2 |
-| **⌃⇧4** | past clipboard 3 |
-| **⌃⇧5** | past clipboard 4 |
-| **⌃⇧6** | past clipboard 5 |
+| **⌃⇧2** (Control-Shift-2) | your 2nd latest copy (the one before your latest) |
+| **⌃⇧3** | your 3rd latest copy |
+| **⌃⇧4** | your 4th latest copy |
+| **⌃⇧5** | your 5th latest copy |
+| **⌃⇧6** | your 6th latest copy |
 
 Pasting an item also puts it back on top of the history, so the others move back one place. That makes this handy trick work: **copy up to six things, then hold Control-Shift and tap 6 six times.** They paste in the order you copied them. (For three things, tap 4 three times, and so on.)
 
@@ -56,7 +58,7 @@ Pasting an item also puts it back on top of the history, so the others move back
 | **⌃⇧L** | lower case |
 | **⌃⇧T** | Title Case (every word capitalized) |
 
-**Pick from the whole history:** press **⌃⇧1** (or click the menu bar icon → **Clipboard History…**). Type to search, use ↑/↓ to choose, and press Return to paste into the app you're in. Esc closes it.
+**Pick from the whole history:** press **⌃⇧1** (or click the menu bar icon → **Clipboard History…**). Type to search, use ↑/↓ to choose, and press Return to paste into the app you're in. Esc closes it. Each row shows how recent it is: 1 is your latest copy, 2 your 2nd latest, and so on.
 
 **Privacy:** the history stays in memory on your Mac. It's never saved to disk, and it's cleared when scoop quits or you turn Smart Paste off. Passwords copied from password managers are skipped. Images larger than 25 MB aren't kept.
 
@@ -88,7 +90,7 @@ This also removes scoop's Screen Recording and Accessibility permissions. If sco
 | The shortcut does nothing | Another app may use the same shortcut. Pick a different one in Settings. Also check that the scoop icon is in the menu bar. |
 | Smart Paste shortcuts (⌃⇧1–6, ⌃⇧U/L/T) do nothing | Check Smart Paste is on in Settings. If Settings shows "scoop needs Accessibility permission to paste", click **Open System Settings** and turn on scoop. |
 | Smart Paste says it needs Accessibility, but scoop is already turned on in System Settings | The entry can go stale (for example, after a reinstall). In System Settings → Privacy & Security → Accessibility, select scoop, click **−** to remove it, then turn Smart Paste off and on again in scoop's Settings and allow it when asked. |
-| A Smart Paste shortcut beeps | There's nothing at that position yet. The history starts empty each time scoop opens or Smart Paste is turned on, so copy a few more things first. ⌃⇧U/L/T also beep when the clipboard holds no text (an image, say) or a password. |
+| A Smart Paste shortcut beeps | You haven't copied that many things yet: ⌃⇧6 needs six copies. The history starts empty each time scoop opens or Smart Paste is turned on, so copy a few more things first. ⌃⇧U/L/T also beep when the clipboard holds no text (an image, say) or a password. |
 | Smart Paste pastes the wrong item in one app | Some slower apps (often Electron apps like Slack) read the clipboard late. Press the shortcuts a little more slowly in that app, and tell the maintainer which app it was. |
 | macOS says the app "can't be opened" | You probably downloaded the zip in a browser. Use the Terminal install command instead, or go to System Settings → Privacy & Security and click **Open Anyway**. |
 | Something else | Open **Console.app**, search for `com.bryantworks.textgrab`, and send the messages to the maintainer. |

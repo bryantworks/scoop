@@ -194,7 +194,8 @@ private struct SwitcherRow: View {
         }
       }
       Spacer(minLength: 8)
-      Text("\(result.position)")
+      // 1 is your latest copy, matching Settings ("2nd latest copy" is ⌃⇧2).
+      Text("\(result.position + 1)")
         .font(.body.monospacedDigit())
         .foregroundStyle(.secondary)
     }

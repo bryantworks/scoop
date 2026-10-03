@@ -48,8 +48,14 @@ struct SettingsView: View {
         if smartPasteEnabled {
           permissionStatus
           shortcutRecorder("Clipboard history:", name: .smartPasteSwitcher)
+          // Counted the way people count: your latest copy is the 1st, so ⌃⇧6 pastes the 6th.
+          Text("Paste a recent copy. ⌘V pastes your latest.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
           ForEach(KeyboardShortcuts.Name.smartPastePositions, id: \.position) { shortcut in
-            shortcutRecorder("Paste past clipboard \(shortcut.position):", name: shortcut.name)
+            let ordinal = NumberFormatter.localizedString(
+              from: NSNumber(value: shortcut.position + 1), number: .ordinal)
+            shortcutRecorder("\(ordinal) latest copy:", name: shortcut.name)
           }
           shortcutRecorder("Paste as ALL CAPS:", name: .smartPasteUpper)
           shortcutRecorder("Paste as lower case:", name: .smartPasteLower)
