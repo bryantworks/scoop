@@ -4,7 +4,7 @@ import TextGrabCore
 
 /// Turns Smart Paste on and off: the clipboard history, its polling timer and the paste
 /// shortcuts. While it's off nothing is monitored and the shortcuts aren't registered, so
-/// other apps get ⌃⇧2…⌃⇧6.
+/// other apps get ⌃⇧2…⌃⇧6 and ⌃⇧U/L/T.
 @MainActor
 final class SmartPasteController {
   static let enabledKey = "smartPasteEnabled"
@@ -85,6 +85,17 @@ final class SmartPasteController {
         MainActor.assumeIsolated { coordinator?.keyUp(position: position) }
       }
     }
+    for (textCase, name) in KeyboardShortcuts.Name.smartPasteCases {
+      KeyboardShortcuts.onKeyDown(for: name) { [weak self, weak coordinator] in
+        MainActor.assumeIsolated {
+          self?.switcher.close()
+          coordinator?.keyDown(converting: textCase)
+        }
+      }
+      KeyboardShortcuts.onKeyUp(for: name) { [weak coordinator] in
+        MainActor.assumeIsolated { coordinator?.keyUp(converting: textCase) }
+      }
+    }
 
     let timer = Timer.scheduledTimer(withTimeInterval: Self.pollInterval, repeats: true) {
       [weak coordinator] _ in
@@ -102,6 +113,9 @@ final class SmartPasteController {
     switcher.close()
     KeyboardShortcuts.removeHandler(for: .smartPasteSwitcher)
     for (_, name) in KeyboardShortcuts.Name.smartPastePositions {
+      KeyboardShortcuts.removeHandler(for: name)
+    }
+    for (_, name) in KeyboardShortcuts.Name.smartPasteCases {
       KeyboardShortcuts.removeHandler(for: name)
     }
     coordinator = nil

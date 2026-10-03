@@ -1,4 +1,5 @@
 import KeyboardShortcuts
+import TextGrabCore
 
 extension KeyboardShortcuts.Name {
   /// Default ⌘⇧2 (TextSniper's default; doesn't clash with the ⌘⇧3/4/5 screenshot shortcuts).
@@ -21,5 +22,19 @@ extension KeyboardShortcuts.Name {
   /// Each fixed-position shortcut with the history position it pastes.
   static let smartPastePositions: [(position: Int, name: Self)] = [
     (1, .smartPaste1), (2, .smartPaste2), (3, .smartPaste3), (4, .smartPaste4), (5, .smartPaste5),
+  ]
+
+  /// Smart Paste: paste the current clipboard as ALL CAPS, lower case or Title Case.
+  /// Defaults ⌃⇧U, ⌃⇧L, ⌃⇧T.
+  static let smartPasteUpper = Self(
+    "smartPasteUpper", initial: .init(.u, modifiers: [.control, .shift]))
+  static let smartPasteLower = Self(
+    "smartPasteLower", initial: .init(.l, modifiers: [.control, .shift]))
+  static let smartPasteTitle = Self(
+    "smartPasteTitle", initial: .init(.t, modifiers: [.control, .shift]))
+
+  /// Each case shortcut with the case it pastes in.
+  static let smartPasteCases: [(textCase: TextCase, name: Self)] = [
+    (.upper, .smartPasteUpper), (.lower, .smartPasteLower), (.title, .smartPasteTitle),
   ]
 }

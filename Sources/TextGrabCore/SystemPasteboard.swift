@@ -1,7 +1,7 @@
 import AppKit
 
-/// `PasteboardAccess` over a real `NSPasteboard`, keeping only the text and image types Smart
-/// Paste supports.
+/// `PasteboardAccess` over a real `NSPasteboard`. Snapshots keep only the text and image types
+/// Smart Paste supports; `saveContents` keeps everything.
 @MainActor
 public struct SystemPasteboard: PasteboardAccess {
   public struct SourceApp: Sendable {
@@ -67,6 +67,31 @@ public struct SystemPasteboard: PasteboardAccess {
     for (type, data) in item.representations {
       pasteboard.setData(data, forType: NSPasteboard.PasteboardType(type))
     }
+    return pasteboard.changeCount
+  }
+
+  public func saveContents() -> PasteboardContents? {
+    guard let items = pasteboard.pasteboardItems, !items.isEmpty else { return nil }
+    return PasteboardContents(
+      items: items.map { item in
+        var representations: [String: Data] = [:]
+        for type in item.types {
+          representations[type.rawValue] = item.data(forType: type)
+        }
+        return representations
+      })
+  }
+
+  public func restore(_ contents: PasteboardContents) -> Int {
+    pasteboard.clearContents()
+    pasteboard.writeObjects(
+      contents.items.map { representations in
+        let item = NSPasteboardItem()
+        for (type, data) in representations {
+          item.setData(data, forType: NSPasteboard.PasteboardType(type))
+        }
+        return item
+      })
     return pasteboard.changeCount
   }
 }

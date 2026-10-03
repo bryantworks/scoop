@@ -134,4 +134,36 @@ import Testing
     _ = access(pasteboard).write(item)
     #expect(pasteboard.data(forType: .png) == Data([0x89, 0x50]))
   }
+
+  @Test func restoreBringsBackEveryItemAndTypeExactly() throws {
+    let pasteboard = makePasteboard()
+    defer { pasteboard.releaseGlobally() }
+    let custom = NSPasteboard.PasteboardType("com.example.private")
+    let first = NSPasteboardItem()
+    first.setString("one", forType: .string)
+    first.setData(Data([1, 2, 3]), forType: custom)
+    let second = NSPasteboardItem()
+    second.setString("file:///tmp/two", forType: .fileURL)
+    pasteboard.clearContents()
+    pasteboard.writeObjects([first, second])
+
+    let access = access(pasteboard)
+    let saved = try #require(access.saveContents())
+    _ = access.write(ClipboardItem(plainText: "something else"))
+    let changeCount = access.restore(saved)
+
+    #expect(changeCount == pasteboard.changeCount)
+    let items = try #require(pasteboard.pasteboardItems)
+    #expect(items.count == 2)
+    #expect(items[0].string(forType: .string) == "one")
+    #expect(items[0].data(forType: custom) == Data([1, 2, 3]))
+    #expect(items[1].string(forType: .fileURL) == "file:///tmp/two")
+  }
+
+  @Test func nothingToSaveOnAnEmptyPasteboard() {
+    let pasteboard = makePasteboard()
+    defer { pasteboard.releaseGlobally() }
+    pasteboard.clearContents()
+    #expect(access(pasteboard).saveContents() == nil)
+  }
 }
