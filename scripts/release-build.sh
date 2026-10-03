@@ -8,11 +8,20 @@ cd "$(dirname "$0")/.."
 : "${SIGNING_CERT_P12_BASE64:?SIGNING_CERT_P12_BASE64 secret is missing}"
 : "${SIGNING_CERT_PASSWORD:?SIGNING_CERT_PASSWORD secret is missing}"
 
-P12="$(mktemp -d)/signing.p12"
+P12_DIR="$(mktemp -d)"
+KEYCHAIN_PATH=""
+cleanup() {
+  rm -rf "$P12_DIR"
+  if [[ -n "$KEYCHAIN_PATH" ]]; then security delete-keychain "$KEYCHAIN_PATH" || true; fi
+}
+trap cleanup EXIT
+
+P12="$P12_DIR/signing.p12"
 printf '%s' "$SIGNING_CERT_P12_BASE64" | base64 --decode >"$P12"
-eval "$(scripts/import-cert.sh "$P12" "$SIGNING_CERT_PASSWORD")"
-rm -f "$P12"
-trap 'security delete-keychain "$KEYCHAIN_PATH"' EXIT
+# Capture first: `eval "$(cmd)"` would hide cmd's failure from set -e.
+CERT_ENV="$(scripts/import-cert.sh "$P12" "$SIGNING_CERT_PASSWORD")"
+eval "$CERT_ENV"
+rm -rf "$P12_DIR"
 
 UNIVERSAL=1 SIGN_IDENTITY="$SIGN_IDENTITY" SIGN_KEYCHAIN="$KEYCHAIN_PATH" scripts/bundle.sh "$VERSION"
 
