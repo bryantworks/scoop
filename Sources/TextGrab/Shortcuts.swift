@@ -9,7 +9,8 @@ extension KeyboardShortcuts.Name {
   static let smartPasteSwitcher = Self(
     "smartPasteSwitcher", initial: .init(.one, modifiers: [.control, .shift]))
 
-  /// Smart Paste: paste "past clipboard N". Defaults ⌃⇧2…⌃⇧6 for past clipboards 1…5.
+  /// Smart Paste: paste history position N, shown to people as the "(N+1)th latest copy".
+  /// Defaults ⌃⇧2…⌃⇧6 for positions 1…5, so the key's number matches the label's.
   static let smartPaste1 = Self("smartPaste1", initial: .init(.two, modifiers: [.control, .shift]))
   static let smartPaste2 = Self(
     "smartPaste2", initial: .init(.three, modifiers: [.control, .shift]))
