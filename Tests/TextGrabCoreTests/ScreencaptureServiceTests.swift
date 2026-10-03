@@ -62,10 +62,34 @@ private func contents(of directory: URL) throws -> [String] {
 
   @Test func returnsNilWhenUserCancels() async throws {
     let dir = try makeTempDirectory()
-    // screencapture exits non-zero and writes nothing when Esc is pressed.
+    // Measured on macOS 27: Esc, or a click without a drag, exits 0 and writes nothing.
+    let service = ScreencaptureService(
+      runner: FakeRunner(behavior: .writeNothing, exitCode: 0), temporaryDirectory: dir)
+    #expect(try await service.captureSelection() == nil)
+  }
+
+  /// A silent non-zero exit is still treated as a cancel, in case an older macOS exits 1 on Esc.
+  @Test func returnsNilWhenToolExitsNonZeroWithoutAnExplanation() async throws {
+    let dir = try makeTempDirectory()
     let service = ScreencaptureService(
       runner: FakeRunner(behavior: .writeNothing, exitCode: 1), temporaryDirectory: dir)
     #expect(try await service.captureSelection() == nil)
+  }
+
+  /// Measured on macOS 27: a failed capture exits 1, writes nothing, and explains on stderr.
+  /// It must show "Couldn't capture screen", not look like a cancel.
+  @Test func throwsWhenToolFailsWithoutWritingAFile() async throws {
+    let dir = try makeTempDirectory()
+    let service = ScreencaptureService(
+      runner: FakeRunner(
+        behavior: .writeNothing, exitCode: 1,
+        standardError: "could not create image from rect\n"),
+      temporaryDirectory: dir)
+    await #expect(
+      throws: CaptureError.toolFailed(exitCode: 1, message: "could not create image from rect")
+    ) {
+      try await service.captureSelection()
+    }
   }
 
   @Test func returnsNilWhenFileIsEmpty() async throws {

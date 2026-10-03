@@ -76,14 +76,18 @@ public struct ScreencaptureService: CaptureService {
     // -i: interactive selection, -x: no shutter sound.
     let result = try await runner.run(Self.tool, arguments: ["-i", "-x", file.path])
 
-    // Esc or a click without a drag leaves no file (or an empty one): a cancel, not an error.
+    let message = result.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
+    let failure = CaptureError.toolFailed(exitCode: result.status, message: message)
+
+    // Esc or a click without a drag leaves no file (or an empty one) and exits 0 with nothing on
+    // stderr: a cancel. A real failure also leaves no file, but exits non-zero and says why.
+    // (A silent non-zero exit stays a cancel, in case some macOS version exits 1 on Esc.)
     let size = (try? FileManager.default.attributesOfItem(atPath: file.path)[.size] as? Int) ?? 0
-    guard size > 0 else { return nil }
-    guard result.status == 0 else {
-      throw CaptureError.toolFailed(
-        exitCode: result.status,
-        message: result.standardError.trimmingCharacters(in: .whitespacesAndNewlines))
+    guard size > 0 else {
+      if result.status != 0 && !message.isEmpty { throw failure }
+      return nil
     }
+    guard result.status == 0 else { throw failure }
 
     let options = [kCGImageSourceShouldCacheImmediately: true] as CFDictionary
     guard let source = CGImageSourceCreateWithURL(file as CFURL, nil),
