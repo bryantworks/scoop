@@ -9,6 +9,7 @@ public final class CaptureCoordinator {
   private let recognizer: any TextRecognizer
   private let clipboard: any ClipboardWriter
   private let feedback: any Feedback
+  private let recognitionTimeout: Duration
   private let log = AppInfo.logger("capture")
 
   public private(set) var isCapturing = false
@@ -18,13 +19,15 @@ public final class CaptureCoordinator {
     capture: any CaptureService,
     recognizer: any TextRecognizer,
     clipboard: any ClipboardWriter,
-    feedback: any Feedback
+    feedback: any Feedback,
+    recognitionTimeout: Duration = .seconds(30)
   ) {
     self.permission = permission
     self.capture = capture
     self.recognizer = recognizer
     self.clipboard = clipboard
     self.feedback = feedback
+    self.recognitionTimeout = recognitionTimeout
   }
 
   public func trigger() async {
@@ -48,9 +51,13 @@ public final class CaptureCoordinator {
       return
     }
 
+    // A deadline, so a stalled recognition can't leave isCapturing stuck (which would
+    // ignore every later shortcut press until relaunch).
     let text: String
     do {
-      text = try await recognizer.recognize(image)
+      text = try await withDeadline(recognitionTimeout) { [recognizer] in
+        try await recognizer.recognize(image)
+      }
     } catch {
       log.error("Recognition failed: \(String(describing: error), privacy: .public)")
       feedback.show(.recognitionFailed)
