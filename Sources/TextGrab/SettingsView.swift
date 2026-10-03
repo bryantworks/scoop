@@ -12,12 +12,14 @@ struct SettingsView: View {
   @AppStorage(SmartPasteController.historySizeKey) private var historySize =
     ClipboardHistory.defaultCapacity
   @State private var accessibilityGranted = SystemAccessibilityPermission().isGranted()
+  @State private var shortcutConflicts: Set<KeyboardShortcuts.Name> = []
 
   var body: some View {
     Form {
       Section {
-        // The Recorder warns when a shortcut is reserved by macOS or used by a menu.
-        KeyboardShortcuts.Recorder("Capture text:", name: .captureText)
+        // The Recorder warns when a shortcut is reserved by macOS or used by a menu;
+        // shortcutRecorder also warns when two scoop shortcuts share keys.
+        shortcutRecorder("Capture text:", name: .captureText)
         Toggle("Launch scoop at login", isOn: $launchAtLogin)
           .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
         if let loginItemMessage {
@@ -38,13 +40,13 @@ struct SettingsView: View {
         .onChange(of: smartPasteEnabled) {
           smartPaste.applySetting()
           refreshPermission()
+          refreshShortcutConflicts()
         }
         if smartPasteEnabled {
           permissionStatus
-          KeyboardShortcuts.Recorder("Clipboard history:", name: .smartPasteSwitcher)
+          shortcutRecorder("Clipboard history:", name: .smartPasteSwitcher)
           ForEach(KeyboardShortcuts.Name.smartPastePositions, id: \.position) { shortcut in
-            KeyboardShortcuts.Recorder(
-              "Paste past clipboard \(shortcut.position):", name: shortcut.name)
+            shortcutRecorder("Paste past clipboard \(shortcut.position):", name: shortcut.name)
           }
           Stepper(
             "Remember \(historySize) items", value: $historySize,
@@ -62,6 +64,7 @@ struct SettingsView: View {
     .formStyle(.grouped)
     .frame(width: 440)
     .fixedSize()
+    .onAppear { refreshShortcutConflicts() }
     // Coming back from System Settings after granting the permission updates the status.
     .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification))
     { _ in refreshPermission() }
@@ -91,6 +94,29 @@ struct SettingsView: View {
         }
       }
     }
+  }
+
+  /// A shortcut recorder, with a warning under it when another scoop shortcut uses the same keys.
+  @ViewBuilder private func shortcutRecorder(_ title: String, name: KeyboardShortcuts.Name)
+    -> some View
+  {
+    KeyboardShortcuts.Recorder(title, name: name) { _ in refreshShortcutConflicts() }
+    if shortcutConflicts.contains(name) {
+      Text("Another scoop shortcut uses these keys. Both will run.")
+        .font(.caption)
+        .foregroundStyle(.orange)
+    }
+  }
+
+  /// Smart Paste's shortcuts only count while it's on: they're inactive otherwise.
+  private func refreshShortcutConflicts() {
+    var names: [KeyboardShortcuts.Name] = [.captureText]
+    if smartPasteEnabled {
+      names.append(.smartPasteSwitcher)
+      names += KeyboardShortcuts.Name.smartPastePositions.map(\.name)
+    }
+    shortcutConflicts = conflictingNames(
+      names.map { (name: $0, key: KeyboardShortcuts.getShortcut(for: $0)) })
   }
 
   private func refreshPermission() {
