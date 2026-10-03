@@ -12,36 +12,78 @@ LEGACY_APP_NAME="Text Grab" # pre-rename installs; same bundle ID, removed on in
 BUNDLE_ID="com.bryantworks.textgrab"
 RELEASE_URL="${TEXTGRAB_RELEASE_URL:-https://github.com/bryantworks/scoop/releases/latest/download}"
 INSTALL_DIR_OVERRIDE="${TEXTGRAB_INSTALL_DIR:-}"
+SYSTEM_APPS="${TEXTGRAB_SYSTEM_APPS:-/Applications}"
+USER_APPS="${TEXTGRAB_USER_APPS:-$HOME/Applications}"
 TEST_MODE="${TEXTGRAB_TEST_MODE:-0}"
 PROCESS_NAME="${TEXTGRAB_PROCESS_NAME:-TextGrab}"
 TMP_DIR=""
+STAGE_DIR=""
 
 say() { printf '==> %s\n' "$*"; }
 die() {
   printf 'Error: %s\n' "$*" >&2
   exit 1
 }
-cleanup() { if [[ -n "$TMP_DIR" ]]; then rm -rf "$TMP_DIR"; fi; }
+cleanup() {
+  if [[ -n "$TMP_DIR" ]]; then rm -rf "$TMP_DIR"; fi
+  if [[ -n "$STAGE_DIR" ]]; then rm -rf "$STAGE_DIR"; fi
+}
 trap cleanup EXIT
 
 install_dirs() {
   if [[ -n "$INSTALL_DIR_OVERRIDE" ]]; then
     echo "$INSTALL_DIR_OVERRIDE"
   else
-    echo "/Applications"
-    echo "$HOME/Applications"
+    echo "$SYSTEM_APPS"
+    echo "$USER_APPS"
   fi
+}
+
+# Folders that already hold scoop (or the pre-rename app), shared folder first.
+existing_install_dirs() {
+  local dir
+  while IFS= read -r dir; do
+    if [[ -d "$dir/$APP_NAME.app" || -d "$dir/$LEGACY_APP_NAME.app" ]]; then echo "$dir"; fi
+  done < <(install_dirs)
 }
 
 choose_install_dir() {
   if [[ -n "$INSTALL_DIR_OVERRIDE" ]]; then
     echo "$INSTALL_DIR_OVERRIDE"
-  elif [[ -w /Applications ]]; then
-    echo "/Applications"
-  else
-    mkdir -p "$HOME/Applications"
-    echo "$HOME/Applications"
+    return
   fi
+  # Update an existing install where it is: a second copy would fight it for the shortcut.
+  local dir existing=()
+  while IFS= read -r dir; do existing+=("$dir"); done < <(existing_install_dirs)
+  for dir in "${existing[@]+"${existing[@]}"}"; do
+    if [[ -w "$dir" ]]; then
+      echo "$dir"
+      return
+    fi
+  done
+  if ((${#existing[@]})); then
+    die "scoop is installed in ${existing[0]}, but this account can't change that folder. Run the install command from an account that can, or delete ${existing[0]}/$APP_NAME.app and run it again."
+  fi
+  if [[ -w "$SYSTEM_APPS" ]]; then
+    echo "$SYSTEM_APPS"
+  else
+    mkdir -p "$USER_APPS"
+    echo "$USER_APPS"
+  fi
+}
+
+# After an update, delete copies left in the other Applications folder.
+remove_other_copies() { # $1 = the folder just installed to
+  local dir
+  while IFS= read -r dir; do
+    if [[ "$dir" != "$1" && -d "$dir/$APP_NAME.app" ]]; then
+      if rm -rf "${dir:?}/$APP_NAME.app"; then
+        say "Removed the extra copy in $dir."
+      else
+        say "Couldn't remove the extra copy in $dir. Delete $dir/$APP_NAME.app yourself."
+      fi
+    fi
+  done < <(install_dirs)
 }
 
 quit_running_app() {
@@ -93,13 +135,28 @@ do_install() {
   ditto -x -k "$TMP_DIR/TextGrab.zip" "$TMP_DIR/unpacked"
   [[ -d "$TMP_DIR/unpacked/$APP_NAME.app" ]] || die "The download didn't contain $APP_NAME.app."
 
-  local dest
+  local dest app old
   dest="$(choose_install_dir)"
+  app="$dest/$APP_NAME.app"
+  old="$dest/.$APP_NAME.app.old.$$"
+
+  # Copy next to the installed app first, then swap with `mv` (a rename in the same folder),
+  # so a failed copy (full disk, permissions) leaves the installed app in place.
+  STAGE_DIR="$dest/.$APP_NAME.app.new.$$"
+  ditto "$TMP_DIR/unpacked/$APP_NAME.app" "$STAGE_DIR" ||
+    die "Couldn't copy scoop into $dest, so nothing was changed. Check that the disk has free space and try again."
+  xattr -dr com.apple.quarantine "$STAGE_DIR" 2>/dev/null || true
+
   quit_running_app
-  rm -rf "${dest:?}/$APP_NAME.app"
+  if [[ -d "$app" ]]; then mv "$app" "$old"; fi
+  if ! mv "$STAGE_DIR" "$app"; then
+    if [[ -d "$old" ]]; then mv "$old" "$app"; fi
+    die "Couldn't replace $app, so the old version was kept."
+  fi
+  STAGE_DIR=""
+  rm -rf "$old"
   remove_legacy_app
-  ditto "$TMP_DIR/unpacked/$APP_NAME.app" "$dest/$APP_NAME.app"
-  xattr -dr com.apple.quarantine "$dest/$APP_NAME.app" 2>/dev/null || true
+  remove_other_copies "$dest"
   say "Installed $APP_NAME to $dest."
 
   if [[ "$TEST_MODE" != "1" ]]; then
@@ -110,7 +167,7 @@ scoop is running — look for its icon in the menu bar.
 
 First time only: press ⌘⇧2. macOS will ask for Screen Recording permission.
 Turn on scoop in System Settings → Privacy & Security → Screen Recording,
-then quit and reopen scoop from the menu bar icon.
+then click the scoop icon in the menu bar → Quit scoop, and reopen it from your Applications folder.
 
 Then: press ⌘⇧2, drag over any text, and paste. Done!
 
