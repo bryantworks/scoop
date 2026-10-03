@@ -19,6 +19,8 @@ let package = Package(
         .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
       ]
     ),
+    // Draws the app icon at build time (scripts/bundle.sh); not shipped in the app.
+    .executableTarget(name: "make-app-icon", dependencies: ["TextGrabCore"]),
     .testTarget(name: "TextGrabCoreTests", dependencies: ["TextGrabCore"]),
   ]
 )

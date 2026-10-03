@@ -1,4 +1,9 @@
-# scoop
+ <h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/scoop-wordmark-dark.svg">
+    <img alt="scoop" src="docs/assets/scoop-wordmark-light.svg" width="220">
+  </picture>
+</h1>
 
 Press a shortcut, drag over anything on your screen, and the text is copied to your clipboard. It works on images, videos, PDFs and screen shares: anything you can see.
 
