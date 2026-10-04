@@ -68,6 +68,7 @@ Click the scoop icon in the menu bar → **Settings…** to:
 
 - **Change a shortcut:** click the shortcut box and press the new keys. To remove a shortcut, click the ⓧ in its box.
 - **Smart Paste:** turn it on or off, change its shortcuts, and choose how many items it remembers (10 unless you change it).
+- **Sound:** scoop plays a short sound when text is copied, and a different one when no text is found. Turn off **Play a sound when text is copied** for silence. It's also silent while System Settings → Sound → **Play user interface sound effects** is off, and it plays at that page's alert volume.
 - **Launch at login:** turn it on so scoop is always ready. If macOS asks, approve it in System Settings → General → Login Items.
 
 ## Update

@@ -9,6 +9,7 @@ Run before each release, on a real Mac, using the build being released.
 - [ ] **Permission flow:** the first ⌘⇧2 shows the permission explanation; after granting it and reopening the app, capture works.
 - [ ] **Basic capture:** ⌘⇧2 → drag over text → paste matches, and "Copied ✓" appears.
 - [ ] **Multi-line:** a paragraph keeps its line breaks.
+- [ ] **Sounds:** a capture plays Frog, a blank area plays Sosumi, and Esc is silent. Turning off **Play a sound when text is copied** in Settings, or System Settings → Sound → **Play user interface sound effects**, makes captures silent.
 - [ ] **Cancel:** ⌘⇧2 → Esc shows nothing and leaves the clipboard unchanged.
 - [ ] **No text:** dragging over a blank area shows "No text found" and leaves the clipboard unchanged.
 - [ ] **Multiple monitors:** a capture on a secondary display works.

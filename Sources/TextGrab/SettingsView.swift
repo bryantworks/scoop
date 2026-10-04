@@ -8,6 +8,7 @@ struct SettingsView: View {
 
   @State private var loginItem = LoginItem.state
   @State private var loginItemError: String?
+  @AppStorage(CaptureSound.enabledKey) private var captureSoundEnabled = true
   @AppStorage(SmartPasteController.enabledKey) private var smartPasteEnabled = false
   @AppStorage(SmartPasteController.historySizeKey) private var historySize =
     ClipboardHistory.defaultCapacity
@@ -28,6 +29,7 @@ struct SettingsView: View {
         if let message = loginItemError ?? loginItem.message {
           Text(message).font(.caption).foregroundStyle(.secondary)
         }
+        Toggle("Play a sound when text is copied", isOn: $captureSoundEnabled)
         Text(
           "Text is recognized on this Mac. Nothing is sent anywhere, and screenshots are deleted right away."
         )

@@ -1,4 +1,5 @@
 import AppKit
+import AudioToolbox
 import TextGrabCore
 
 /// A short toast near the cursor for results, and an alert for the missing permission.
@@ -6,8 +7,14 @@ import TextGrabCore
 final class FeedbackHUD: Feedback {
   private var panel: NSPanel?
   private var hideTask: Task<Void, Never>?
+  private var soundIDs: [String: SystemSoundID] = [:]
+
+  init() {
+    UserDefaults.standard.register(defaults: [CaptureSound.enabledKey: true])
+  }
 
   func show(_ event: FeedbackEvent) {
+    playSound(for: event)
     switch event {
     case .copied: toast("Copied ✓")
     case .noText: toast("No text found")
@@ -32,6 +39,24 @@ final class FeedbackHUD: Feedback {
         settingsPane: "Privacy_Accessibility")
     case .nothingToPaste: NSSound.beep()
     }
+  }
+
+  /// System sounds play at the alert volume (System Settings → Sound), not the music volume.
+  private func playSound(for event: FeedbackEvent) {
+    let defaults = UserDefaults.standard  // includes the macOS-wide settings
+    guard
+      let name = CaptureSound.name(
+        for: event, enabled: defaults.bool(forKey: CaptureSound.enabledKey),
+        systemSoundsOn: CaptureSound.systemSoundsOn(
+          storedValue: defaults.object(forKey: CaptureSound.systemSoundsKey) as? Int))
+    else { return }
+    if soundIDs[name] == nil {
+      let url = URL(fileURLWithPath: "/System/Library/Sounds/\(name).aiff")
+      var id: SystemSoundID = 0
+      guard AudioServicesCreateSystemSoundID(url as CFURL, &id) == noErr else { return }
+      soundIDs[name] = id
+    }
+    if let id = soundIDs[name] { AudioServicesPlaySystemSound(id) }
   }
 
   private func toast(_ message: String) {
